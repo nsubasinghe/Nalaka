@@ -1,17 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { neon } from '@neondatabase/neon-js';
+import pkg from 'pg';
 
 dotenv.config();
 
+const { Pool } = pkg;
 const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-const sql = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null;
+let pool = null;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+}
 
 app.post('/api/projects', async (req, res) => {
   try {
@@ -28,7 +32,7 @@ app.post('/api/projects', async (req, res) => {
       updatedby
     } = req.body;
 
-    if (!sql) {
+    if (!pool) {
       return res.status(500).json({
         error: 'DATABASE_URL is not configured.'
       });
@@ -40,8 +44,8 @@ app.post('/api/projects', async (req, res) => {
       });
     }
 
-    const [project] = await sql`
-      INSERT INTO projectmaster (
+    const result = await pool.query(
+      `INSERT INTO projectmaster (
         projectcode,
         versionid,
         projectname,
@@ -53,23 +57,26 @@ app.post('/api/projects', async (req, res) => {
         createdby,
         updatedby
       ) VALUES (
-        ${projectcode},
-        ${versionid},
-        ${projectname},
-        ${projectdescription || null},
-        ${projecttype || null},
-        ${customerid || null},
-        ${currency || null},
-        ${status || null},
-        ${createdby || null},
-        ${updatedby || null}
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
       )
-      RETURNING *;
-    `;
+      RETURNING *;`,
+      [
+        projectcode,
+        versionid,
+        projectname,
+        projectdescription || null,
+        projecttype || null,
+        customerid || null,
+        currency || null,
+        status || null,
+        createdby || null,
+        updatedby || null
+      ]
+    );
 
     return res.status(201).json({
       success: true,
-      project
+      project: result.rows[0]
     });
   } catch (error) {
     console.error('Insert error:', error);
