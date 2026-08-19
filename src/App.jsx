@@ -17,6 +17,7 @@ function App() {
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -27,6 +28,7 @@ function App() {
     event.preventDefault();
     setLoading(true);
     setMessage('');
+    setMessageType('');
 
     try {
       const response = await fetch('/api/projects', {
@@ -41,10 +43,15 @@ function App() {
         throw new Error(result.error || 'Failed to save project');
       }
 
-      setMessage('Project saved successfully.');
+      setMessageType('success');
+      setMessage('✓ Project saved successfully!');
       setForm(initialForm);
+      
+      // Clear message after 4 seconds
+      setTimeout(() => setMessage(''), 4000);
     } catch (error) {
-      setMessage(error.message || 'Something went wrong');
+      setMessageType('error');
+      setMessage(`✕ ${error.message || 'Something went wrong'}`);
     } finally {
       setLoading(false);
     }
@@ -53,66 +60,133 @@ function App() {
   return (
     <div className="page-wrap">
       <div className="card">
-        <h1>ProjectMaster</h1>
+        <h1>📋 ProjectMaster</h1>
         <form onSubmit={handleSubmit} className="project-form">
           <div className="form-grid">
             <label>
-              Project Code
-              <input name="projectcode" maxLength={10} value={form.projectcode} onChange={handleChange} required />
+              Project Code *
+              <input 
+                name="projectcode" 
+                maxLength={10} 
+                value={form.projectcode} 
+                onChange={handleChange} 
+                placeholder="e.g., PRJ001"
+                required 
+              />
             </label>
 
             <label>
-              Version ID
-              <input name="versionid" maxLength={2} value={form.versionid} onChange={handleChange} required />
+              Version ID *
+              <input 
+                name="versionid" 
+                maxLength={2} 
+                value={form.versionid} 
+                onChange={handleChange} 
+                placeholder="e.g., 01"
+                required 
+              />
             </label>
 
             <label className="full-width">
-              Project Name
-              <input name="projectname" maxLength={50} value={form.projectname} onChange={handleChange} required />
+              Project Name *
+              <input 
+                name="projectname" 
+                maxLength={50} 
+                value={form.projectname} 
+                onChange={handleChange} 
+                placeholder="Enter project name"
+                required 
+              />
             </label>
 
             <label className="full-width">
               Project Description
-              <input name="projectdescription" maxLength={50} value={form.projectdescription} onChange={handleChange} />
+              <input 
+                name="projectdescription" 
+                maxLength={50} 
+                value={form.projectdescription} 
+                onChange={handleChange} 
+                placeholder="Brief description of the project"
+              />
             </label>
 
             <label>
               Project Type
-              <input name="projecttype" maxLength={2} value={form.projecttype} onChange={handleChange} />
+              <input 
+                name="projecttype" 
+                maxLength={2} 
+                value={form.projecttype} 
+                onChange={handleChange} 
+                placeholder="e.g., IT"
+              />
             </label>
 
             <label>
               Customer ID
-              <input name="customerid" maxLength={10} value={form.customerid} onChange={handleChange} />
+              <input 
+                name="customerid" 
+                maxLength={10} 
+                value={form.customerid} 
+                onChange={handleChange} 
+                placeholder="e.g., CUST001"
+              />
             </label>
 
             <label>
               Currency
-              <input name="currency" maxLength={4} value={form.currency} onChange={handleChange} />
+              <input 
+                name="currency" 
+                maxLength={4} 
+                value={form.currency} 
+                onChange={handleChange} 
+                placeholder="e.g., USD"
+              />
             </label>
 
             <label>
               Status
-              <input name="status" maxLength={1} value={form.status} onChange={handleChange} />
+              <input 
+                name="status" 
+                maxLength={1} 
+                value={form.status} 
+                onChange={handleChange} 
+                placeholder="e.g., A (Active)"
+              />
             </label>
 
             <label>
               Created By
-              <input name="createdby" maxLength={10} value={form.createdby} onChange={handleChange} />
+              <input 
+                name="createdby" 
+                maxLength={10} 
+                value={form.createdby} 
+                onChange={handleChange} 
+                placeholder="Your name"
+              />
             </label>
 
             <label>
               Updated By
-              <input name="updatedby" maxLength={10} value={form.updatedby} onChange={handleChange} />
+              <input 
+                name="updatedby" 
+                maxLength={10} 
+                value={form.updatedby} 
+                onChange={handleChange} 
+                placeholder="Updated by"
+              />
             </label>
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Project'}
+            {loading ? '⏳ Saving...' : '💾 Save Project'}
           </button>
         </form>
 
-        {message && <p className="message">{message}</p>}
+        {message && (
+          <p className={`message message-${messageType}`}>
+            {message}
+          </p>
+        )}
       </div>
     </div>
   );
