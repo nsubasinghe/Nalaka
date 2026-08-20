@@ -17,7 +17,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -33,7 +34,8 @@ input {
   width: min(900px, 100%);
   background: #ffffff;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(30, 136, 229, 0.25), 0 0 1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 60px rgba(30, 136, 229, 0.25),
+    0 0 1px rgba(0, 0, 0, 0.1);
   padding: 48px;
   animation: slideIn 0.5s ease-out;
 }
@@ -43,6 +45,7 @@ input {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -86,29 +89,49 @@ label {
   grid-column: 1 / -1;
 }
 
-input {
+/* Input and dropdown fields */
+input,
+select {
+  width: 100%;
   border: 2px solid #bbdefb;
   border-radius: 12px;
   padding: 14px 16px;
   background: #f5f9fd;
+  color: #2c3e50;
   font-size: 0.95rem;
   transition: all 0.3s ease;
 }
 
+/* Input placeholder */
 input::placeholder {
   color: #90caf9;
 }
 
-input:hover {
+/* Dropdown */
+select {
+  cursor: pointer;
+}
+
+/* Hover effect */
+input:hover,
+select:hover {
   background: #e3f2fd;
   border-color: #64b5f6;
 }
 
-input:focus {
+/* Focus effect */
+input:focus,
+select:focus {
   outline: none;
   border-color: #1e88e5;
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.15);
+}
+
+/* Disabled dropdown */
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 button {
@@ -153,6 +176,7 @@ button:disabled {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

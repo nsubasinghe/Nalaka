@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const initialForm = {
   projectcode: '',
@@ -15,17 +15,119 @@ const initialForm = {
 
 function App() {
   const [form, setForm] = useState(initialForm);
+
+  const [projectTypes, setProjectTypes] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+
   const [loading, setLoading] = useState(false);
+  const [dropdownLoading, setDropdownLoading] = useState(true);
+
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
+  const [messageType, setMessageType] = useState('');
+
+  useEffect(() => {
+    const loadDropdownData = async () => {
+      setDropdownLoading(true);
+
+      try {
+        const [
+          projectTypesResponse,
+          currenciesResponse,
+          statusesResponse
+        ] = await Promise.all([
+          fetch('/api/project-types'),
+          fetch('/api/currencies'),
+          fetch('/api/statuses')
+        ]);
+
+        if (
+          !projectTypesResponse.ok ||
+          !currenciesResponse.ok ||
+          !statusesResponse.ok
+        ) {
+          throw new Error('Failed to load dropdown data');
+        }
+
+        const projectTypesResult =
+          await projectTypesResponse.json();
+
+        const currenciesResult =
+          await currenciesResponse.json();
+
+        const statusesResult =
+          await statusesResponse.json();
+
+        setProjectTypes(
+          projectTypesResult.projectTypes || []
+        );
+
+        setCurrencies(
+          currenciesResult.currencies || []
+        );
+
+        setStatuses(
+          statusesResult.statuses || []
+        );
+      } catch (error) {
+        setMessageType('error');
+        setMessage(
+          `✕ ${error.message || 'Failed to load form data'}`
+        );
+      } finally {
+        setDropdownLoading(false);
+      }
+    };
+
+    loadDropdownData();
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleProjectCodeChange = (event) => {
+    const value = event.target.value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+
+    setForm((prev) => ({
+      ...prev,
+      projectcode: value
+    }));
+  };
+
+  const handleVersionChange = (event) => {
+    const value = event.target.value.replace(
+      /[^0-9]/g,
+      ''
+    );
+
+    setForm((prev) => ({
+      ...prev,
+      versionid: value
+    }));
+  };
+
+  const handleCustomerIdChange = (event) => {
+    const value = event.target.value
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+
+    setForm((prev) => ({
+      ...prev,
+      customerid: value
+    }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setLoading(true);
     setMessage('');
     setMessageType('');
@@ -33,25 +135,33 @@ function App() {
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(form)
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to save project');
+        throw new Error(
+          result.error || 'Failed to save project'
+        );
       }
 
       setMessageType('success');
       setMessage('✓ Project saved successfully!');
+
       setForm(initialForm);
-      
-      // Clear message after 4 seconds
-      setTimeout(() => setMessage(''), 4000);
+
+      setTimeout(() => {
+        setMessage('');
+      }, 4000);
     } catch (error) {
       setMessageType('error');
-      setMessage(`✕ ${error.message || 'Something went wrong'}`);
+      setMessage(
+        `✕ ${error.message || 'Something went wrong'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -61,124 +171,175 @@ function App() {
     <div className="page-wrap">
       <div className="card">
         <h1>📋 ProjectMaster</h1>
-        <form onSubmit={handleSubmit} className="project-form">
+
+        <form
+          onSubmit={handleSubmit}
+          className="project-form"
+        >
           <div className="form-grid">
+
             <label>
               Project Code *
-              <input 
-                name="projectcode" 
-                maxLength={10} 
-                value={form.projectcode} 
-                onChange={handleChange} 
+              <input
+                name="projectcode"
+                maxLength={10}
+                value={form.projectcode}
+                onChange={handleProjectCodeChange}
                 placeholder="e.g., PRJ001"
-                required 
+                required
               />
             </label>
 
             <label>
               Version ID *
-              <input 
-                name="versionid" 
-                maxLength={2} 
-                value={form.versionid} 
-                onChange={handleChange} 
+              <input
+                name="versionid"
+                maxLength={2}
+                value={form.versionid}
+                onChange={handleVersionChange}
                 placeholder="e.g., 01"
-                required 
+                required
               />
             </label>
 
             <label className="full-width">
               Project Name *
-              <input 
-                name="projectname" 
-                maxLength={50} 
-                value={form.projectname} 
-                onChange={handleChange} 
+              <input
+                name="projectname"
+                maxLength={50}
+                value={form.projectname}
+                onChange={handleChange}
                 placeholder="Enter project name"
-                required 
+                required
               />
             </label>
 
             <label className="full-width">
               Project Description
-              <input 
-                name="projectdescription" 
-                maxLength={50} 
-                value={form.projectdescription} 
-                onChange={handleChange} 
+              <input
+                name="projectdescription"
+                maxLength={50}
+                value={form.projectdescription}
+                onChange={handleChange}
                 placeholder="Brief description of the project"
               />
             </label>
 
             <label>
-              Project Type
-              <input 
-                name="projecttype" 
-                maxLength={2} 
-                value={form.projecttype} 
-                onChange={handleChange} 
-                placeholder="e.g., IT"
+              Project Type *
+              <select
+                name="projecttype"
+                value={form.projecttype}
+                onChange={handleChange}
+                disabled={dropdownLoading}
+                required
+              >
+                <option value="">
+                  Select Project Type
+                </option>
+
+                {projectTypes.map((type) => (
+                  <option
+                    key={type.projecttypeid}
+                    value={type.projecttypeid}
+                  >
+                    {type.projecttypeid} - {type.projecttypename}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              Customer ID *
+              <input
+                name="customerid"
+                maxLength={10}
+                value={form.customerid}
+                onChange={handleCustomerIdChange}
+                placeholder="e.g., 00001"
+                required
               />
             </label>
 
             <label>
-              Customer ID
-              <input 
-                name="customerid" 
-                maxLength={10} 
-                value={form.customerid} 
-                onChange={handleChange} 
-                placeholder="e.g., CUST001"
-              />
+              Currency *
+              <select
+                name="currency"
+                value={form.currency}
+                onChange={handleChange}
+                disabled={dropdownLoading}
+                required
+              >
+                <option value="">
+                  Select Currency
+                </option>
+
+                {currencies.map((currency) => (
+                  <option
+                    key={currency.currencycode}
+                    value={currency.currencycode}
+                  >
+                    {currency.currencycode} - {currency.currencyname}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
-              Currency
-              <input 
-                name="currency" 
-                maxLength={4} 
-                value={form.currency} 
-                onChange={handleChange} 
-                placeholder="e.g., USD"
-              />
-            </label>
+              Status *
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                disabled={dropdownLoading}
+                required
+              >
+                <option value="">
+                  Select Status
+                </option>
 
-            <label>
-              Status
-              <input 
-                name="status" 
-                maxLength={1} 
-                value={form.status} 
-                onChange={handleChange} 
-                placeholder="e.g., A (Active)"
-              />
+                {statuses.map((status) => (
+                  <option
+                    key={status.statuscode}
+                    value={status.statuscode}
+                  >
+                    {status.statuscode} - {status.statusname}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label>
               Created By
-              <input 
-                name="createdby" 
-                maxLength={10} 
-                value={form.createdby} 
-                onChange={handleChange} 
+              <input
+                name="createdby"
+                maxLength={10}
+                value={form.createdby}
+                onChange={handleChange}
                 placeholder="Your name"
               />
             </label>
 
             <label>
               Updated By
-              <input 
-                name="updatedby" 
-                maxLength={10} 
-                value={form.updatedby} 
-                onChange={handleChange} 
+              <input
+                name="updatedby"
+                maxLength={10}
+                value={form.updatedby}
+                onChange={handleChange}
                 placeholder="Updated by"
               />
             </label>
+
           </div>
 
-          <button type="submit" disabled={loading}>
-            {loading ? '⏳ Saving...' : '💾 Save Project'}
+          <button
+            type="submit"
+            disabled={loading || dropdownLoading}
+          >
+            {loading
+              ? '⏳ Saving...'
+              : '💾 Save Project'}
           </button>
         </form>
 
