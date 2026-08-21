@@ -22,8 +22,55 @@ select {
   font: inherit;
 }
 
+/* Navbar */
+.navbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 28px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(30, 136, 229, 0.15);
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+}
+
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1565c0;
+  letter-spacing: 0.5px;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: #475569;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: all 0.25s ease;
+}
+
+.nav-link:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.nav-link.active {
+  background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(30, 136, 229, 0.25);
+}
+
 .page-wrap {
-  min-height: 100vh;
+  min-height: calc(100vh - 73px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -62,6 +109,14 @@ h1 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 18px;
+  color: #1a202c;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .project-form {
@@ -128,10 +183,12 @@ select:focus {
   box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.15);
 }
 
-/* Disabled dropdown */
+/* Disabled fields */
+input:disabled,
 select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: #eef3f8;
 }
 
 button {
@@ -162,6 +219,28 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Form action button row */
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Secondary / cancel button */
+.secondary-button {
+  background: #eef3f8;
+  color: #2c3e50;
+  box-shadow: none;
+  border: 2px solid #cbd5e1;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #e2e8f0;
+  box-shadow: none;
+}
+
+/* Messages */
 .message {
   padding: 16px 20px;
   border-radius: 12px;
@@ -197,7 +276,116 @@ button:disabled {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
+.field-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Business Partner list */
+.partner-list-section {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid #dbeafe;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+}
+
+.partner-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.partner-table th,
+.partner-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5edf5;
+  vertical-align: middle;
+}
+
+.partner-table th {
+  background: #f5f9fd;
+  color: #1e3a5f;
+  font-weight: 700;
+}
+
+.partner-table tbody tr:hover {
+  background: #f8fbff;
+}
+
+.partner-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Table action buttons */
+.table-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.edit-button,
+.delete-button {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  box-shadow: none;
+}
+
+.edit-button {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.edit-button:hover:not(:disabled) {
+  background: #bbdefb;
+  box-shadow: none;
+}
+
+.delete-button {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.delete-button:hover:not(:disabled) {
+  background: #fecaca;
+  box-shadow: none;
+}
+
 @media (max-width: 600px) {
+  .navbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+  }
+
+  .navbar-title {
+    text-align: center;
+  }
+
+  .navbar-links {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nav-link {
+    text-align: center;
+  }
+
+  .page-wrap {
+    min-height: auto;
+    padding: 16px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -211,6 +399,20 @@ button:disabled {
   }
 
   button {
+    width: 100%;
+  }
+
+  .button-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-actions {
+    flex-direction: column;
+  }
+
+  .edit-button,
+  .delete-button {
     width: 100%;
   }
 }
