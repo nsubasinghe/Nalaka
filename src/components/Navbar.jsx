@@ -1,6 +1,9 @@
 import { NavLink } from 'react-router-dom';
 
 function Navbar() {
+  const getNavClass = ({ isActive }) =>
+    isActive ? 'nav-link active' : 'nav-link';
+
   return (
     <nav className="navbar">
       <div className="navbar-title">
@@ -9,19 +12,50 @@ function Navbar() {
 
       <div className="navbar-links">
         <NavLink
-          to="/projects"
-          className={({ isActive }) =>
-            isActive ? 'nav-link active' : 'nav-link'
-          }
+          to="/dashboard"
+          className={getNavClass}
         >
-          ProjectMaster
+          Dashboard
+        </NavLink>
+
+        <NavLink
+          to="/projects"
+          className={getNavClass}
+        >
+          Project Master
+        </NavLink>
+
+        <NavLink
+          to="/project-phases"
+          className={getNavClass}
+        >
+          Project Phases
+        </NavLink>
+
+        <NavLink
+          to="/weekly-planning"
+          className={getNavClass}
+        >
+          Weekly Planning
+        </NavLink>
+
+        <NavLink
+          to="/resource-allocation"
+          className={getNavClass}
+        >
+          Resource Allocation
+        </NavLink>
+
+        <NavLink
+          to="/project-plan"
+          className={getNavClass}
+        >
+          Project Plan
         </NavLink>
 
         <NavLink
           to="/business-partners"
-          className={({ isActive }) =>
-            isActive ? 'nav-link active' : 'nav-link'
-          }
+          className={getNavClass}
         >
           Business Partner
         </NavLink>
