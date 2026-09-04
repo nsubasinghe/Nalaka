@@ -54,10 +54,31 @@ function Navbar() {
         </NavLink>
 
         <NavLink
+          to="/resource-master"
+          className={getNavClass}
+        >
+          Resource Master
+        </NavLink>
+
+        <NavLink
+          to="/project-fi"
+          className={getNavClass}
+        >
+          Project Financials
+        </NavLink>
+
+        <NavLink
           to="/business-partners"
           className={getNavClass}
         >
           Business Partner
+        </NavLink>
+
+        <NavLink
+          to="/master-data"
+          className={getNavClass}
+        >
+          Master Data
         </NavLink>
       </div>
     </nav>

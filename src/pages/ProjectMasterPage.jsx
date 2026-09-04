@@ -6,20 +6,28 @@ const initialForm = {
   projectname: '',
   projectdescription: '',
   projecttype: '',
-  customerid: '',
+  partnerid: '',
   currency: '',
+  location: '',
+  region: '',
   status: '',
   createdby: '',
   updatedby: ''
 };
 
+const projectStatuses = [
+  { code: 'P', name: 'Planned' },
+  { code: 'A', name: 'Active' },
+  { code: 'C', name: 'Completed' },
+  { code: 'X', name: 'Cancelled' }
+];
+
 function ProjectMasterPage() {
   const [form, setForm] = useState(initialForm);
 
   const [projectTypes, setProjectTypes] = useState([]);
-  const [customers, setCustomers] = useState([]);
+  const [businessPartners, setBusinessPartners] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  const [statuses, setStatuses] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [dropdownLoading, setDropdownLoading] = useState(true);
@@ -34,38 +42,49 @@ function ProjectMasterPage() {
       try {
         const [
           projectTypesResponse,
-          customersResponse,
-          currenciesResponse,
-          statusesResponse
+          businessPartnersResponse,
+          currenciesResponse
         ] = await Promise.all([
           fetch('/api/project-types'),
-          fetch('/api/customers'),
-          fetch('/api/currencies'),
-          fetch('/api/statuses')
+          fetch('/api/business-partners'),
+          fetch('/api/currencies')
         ]);
 
         if (
           !projectTypesResponse.ok ||
-          !customersResponse.ok ||
-          !currenciesResponse.ok ||
-          !statusesResponse.ok
+          !businessPartnersResponse.ok ||
+          !currenciesResponse.ok
         ) {
-          throw new Error('Failed to load dropdown data');
+          throw new Error('Failed to load dropdown data.');
         }
 
-        const projectTypesResult = await projectTypesResponse.json();
-        const customersResult = await customersResponse.json();
-        const currenciesResult = await currenciesResponse.json();
-        const statusesResult = await statusesResponse.json();
+        const projectTypesResult =
+          await projectTypesResponse.json();
 
-        setProjectTypes(projectTypesResult.projectTypes || []);
-        setCustomers(customersResult.customers || []);
-        setCurrencies(currenciesResult.currencies || []);
-        setStatuses(statusesResult.statuses || []);
+        const businessPartnersResult =
+          await businessPartnersResponse.json();
+
+        const currenciesResult =
+          await currenciesResponse.json();
+
+        setProjectTypes(
+          projectTypesResult.projectTypes || []
+        );
+
+        setBusinessPartners(
+          businessPartnersResult.businessPartners || []
+        );
+
+        setCurrencies(
+          currenciesResult.currencies || []
+        );
       } catch (error) {
         setMessageType('error');
         setMessage(
-          `✕ ${error.message || 'Failed to load form data'}`
+          `✕ ${
+            error.message ||
+            'Failed to load Project Master data.'
+          }`
         );
       } finally {
         setDropdownLoading(false);
@@ -78,8 +97,8 @@ function ProjectMasterPage() {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((prev) => ({
-      ...prev,
+    setForm((previousForm) => ({
+      ...previousForm,
       [name]: value
     }));
   };
@@ -89,20 +108,19 @@ function ProjectMasterPage() {
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '');
 
-    setForm((prev) => ({
-      ...prev,
+    setForm((previousForm) => ({
+      ...previousForm,
       projectcode: value
     }));
   };
 
   const handleVersionChange = (event) => {
-    const value = event.target.value.replace(
-      /[^0-9]/g,
-      ''
-    );
+    const value = event.target.value
+      .replace(/[^0-9]/g, '')
+      .slice(0, 2);
 
-    setForm((prev) => ({
-      ...prev,
+    setForm((previousForm) => ({
+      ...previousForm,
       versionid: value
     }));
   };
@@ -127,12 +145,12 @@ function ProjectMasterPage() {
 
       if (!response.ok) {
         throw new Error(
-          result.error || 'Failed to save project'
+          result.error || 'Failed to save project.'
         );
       }
 
       setMessageType('success');
-      setMessage('✓ Project saved successfully!');
+      setMessage('✓ Project saved successfully.');
 
       setForm(initialForm);
 
@@ -142,7 +160,10 @@ function ProjectMasterPage() {
     } catch (error) {
       setMessageType('error');
       setMessage(
-        `✕ ${error.message || 'Something went wrong'}`
+        `✕ ${
+          error.message ||
+          'Something went wrong while saving.'
+        }`
       );
     } finally {
       setLoading(false);
@@ -152,7 +173,7 @@ function ProjectMasterPage() {
   return (
     <div className="page-wrap">
       <div className="card">
-        <h1>📋 ProjectMaster</h1>
+        <h1>📋 Project Master</h1>
 
         <form
           onSubmit={handleSubmit}
@@ -166,7 +187,7 @@ function ProjectMasterPage() {
                 maxLength={10}
                 value={form.projectcode}
                 onChange={handleProjectCodeChange}
-                placeholder="e.g., PRJ001"
+                placeholder="e.g. PRJ001"
                 required
               />
             </label>
@@ -178,7 +199,7 @@ function ProjectMasterPage() {
                 maxLength={2}
                 value={form.versionid}
                 onChange={handleVersionChange}
-                placeholder="e.g., 01"
+                placeholder="e.g. 01"
                 required
               />
             </label>
@@ -197,23 +218,23 @@ function ProjectMasterPage() {
 
             <label className="full-width">
               Project Description
-              <input
+              <textarea
                 name="projectdescription"
-                maxLength={50}
+                maxLength={500}
                 value={form.projectdescription}
                 onChange={handleChange}
-                placeholder="Brief description of the project"
+                placeholder="Enter project description"
+                rows={4}
               />
             </label>
 
             <label>
-              Project Type *
+              Project Type
               <select
                 name="projecttype"
                 value={form.projecttype}
                 onChange={handleChange}
                 disabled={dropdownLoading}
-                required
               >
                 <option value="">
                   Select Project Type
@@ -221,47 +242,45 @@ function ProjectMasterPage() {
 
                 {projectTypes.map((type) => (
                   <option
-                    key={type.projecttypeid}
-                    value={type.projecttypeid}
+                    key={type.projecttype}
+                    value={type.projecttype}
                   >
-                    {type.projecttypeid} - {type.projecttypename}
+                    {type.projecttype} - {type.description}
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              Customer ID *
+              Business Partner
               <select
-                name="customerid"
-                value={form.customerid}
+                name="partnerid"
+                value={form.partnerid}
                 onChange={handleChange}
                 disabled={dropdownLoading}
-                required
               >
                 <option value="">
                   Select Business Partner
                 </option>
 
-                {customers.map((customer) => (
+                {businessPartners.map((partner) => (
                   <option
-                    key={customer.partnerid}
-                    value={customer.partnerid}
+                    key={partner.partnerid}
+                    value={partner.partnerid}
                   >
-                    {customer.partnerid} - {customer.description}
+                    {partner.partnerid} - {partner.description}
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              Currency *
+              Currency
               <select
                 name="currency"
                 value={form.currency}
                 onChange={handleChange}
                 disabled={dropdownLoading}
-                required
               >
                 <option value="">
                   Select Currency
@@ -269,37 +288,57 @@ function ProjectMasterPage() {
 
                 {currencies.map((currency) => (
                   <option
-                    key={currency.currencycode}
-                    value={currency.currencycode}
+                    key={currency.currcode}
+                    value={currency.currcode}
                   >
-                    {currency.currencycode} - {currency.currencyname}
+                    {currency.currcode} - {currency.description}
                   </option>
                 ))}
               </select>
             </label>
 
             <label>
-              Status *
+              Status
               <select
                 name="status"
                 value={form.status}
                 onChange={handleChange}
-                disabled={dropdownLoading}
-                required
               >
                 <option value="">
                   Select Status
                 </option>
 
-                {statuses.map((status) => (
+                {projectStatuses.map((status) => (
                   <option
-                    key={status.statuscode}
-                    value={status.statuscode}
+                    key={status.code}
+                    value={status.code}
                   >
-                    {status.statuscode} - {status.statusname}
+                    {status.code} - {status.name}
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label>
+              Location
+              <input
+                name="location"
+                maxLength={20}
+                value={form.location}
+                onChange={handleChange}
+                placeholder="e.g. Colombo"
+              />
+            </label>
+
+            <label>
+              Region
+              <input
+                name="region"
+                maxLength={20}
+                value={form.region}
+                onChange={handleChange}
+                placeholder="e.g. APAC"
+              />
             </label>
 
             <label>
@@ -309,7 +348,7 @@ function ProjectMasterPage() {
                 maxLength={10}
                 value={form.createdby}
                 onChange={handleChange}
-                placeholder="Your name"
+                placeholder="Created by"
               />
             </label>
 
@@ -336,7 +375,9 @@ function ProjectMasterPage() {
         </form>
 
         {message && (
-          <p className={`message message-${messageType}`}>
+          <p
+            className={`message message-${messageType}`}
+          >
             {message}
           </p>
         )}

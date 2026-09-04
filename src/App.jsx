@@ -8,6 +8,9 @@ import ProjectPhasesPage from './pages/ProjectPhasesPage';
 import WeeklyPlanningPage from './pages/WeeklyPlanningPage';
 import ResourceAllocationPage from './pages/ResourceAllocationPage';
 import ProjectPlanPage from './pages/ProjectPlanPage';
+import ResourceMasterPage from './pages/ResourceMasterPage';
+import ProjectFIPage from './pages/ProjectFIPage';
+import MasterDataPage from './pages/MasterDataPage';
 
 function App() {
   return (
@@ -53,6 +56,21 @@ function App() {
         <Route
           path="/project-plan"
           element={<ProjectPlanPage />}
+        />
+
+        <Route
+          path="/resource-master"
+          element={<ResourceMasterPage />}
+        />
+
+        <Route
+          path="/project-fi"
+          element={<ProjectFIPage />}
+        />
+
+        <Route
+          path="/master-data"
+          element={<MasterDataPage />}
         />
       </Routes>
     </>
