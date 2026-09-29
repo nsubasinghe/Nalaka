@@ -3,10 +3,13 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pkg from 'pg';
 import { randomUUID } from 'crypto';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
 const { Pool } = pkg;
+const currentDirectory = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -1680,6 +1683,19 @@ app.get(
 /* =========================================================
    START SERVER
 ========================================================= */
+
+if (process.env.NODE_ENV === 'production') {
+  const distDirectory = resolve(currentDirectory, '../dist');
+
+  app.use(express.static(distDirectory));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+
+    return res.sendFile(resolve(distDirectory, 'index.html'));
+  });
+}
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
