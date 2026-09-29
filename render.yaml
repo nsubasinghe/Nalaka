@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ppbma-projectmaster
+    runtime: node
+    plan: free
+    buildCommand: npm ci --legacy-peer-deps && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false

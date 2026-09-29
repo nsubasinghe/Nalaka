@@ -1,26 +1,38 @@
 import express from 'express';
 import cors from 'cors';
 
+import {
+  dirname,
+  resolve
+} from 'path';
+
+import {
+  fileURLToPath
+} from 'url';
+
 import apiRouter from './routes/index.js';
 
-const app =
-  express();
+/* =========================================================
+   APPLICATION CONFIGURATION
+========================================================= */
+
+const app = express();
 
 const port =
-  process.env.PORT ||
-  5000;
+  process.env.PORT || 5000;
+
+const currentDirectory =
+  dirname(
+    fileURLToPath(import.meta.url)
+  );
 
 /* =========================================================
    GLOBAL MIDDLEWARE
 ========================================================= */
 
-app.use(
-  cors()
-);
+app.use(cors());
 
-app.use(
-  express.json()
-);
+app.use(express.json());
 
 /* =========================================================
    API ROUTES
@@ -47,6 +59,47 @@ app.use(
       });
   }
 );
+
+/* =========================================================
+   PRODUCTION FRONTEND
+========================================================= */
+
+if (
+  process.env.NODE_ENV ===
+  'production'
+) {
+  const distDirectory =
+    resolve(
+      currentDirectory,
+      '../dist'
+    );
+
+  // Serve the React production build.
+  app.use(
+    express.static(
+      distDirectory
+    )
+  );
+
+  // Support React client-side routing.
+  app.use(
+    (req, res, next) => {
+      if (
+        req.path === '/api' ||
+        req.path.startsWith('/api/')
+      ) {
+        return next();
+      }
+
+      return res.sendFile(
+        resolve(
+          distDirectory,
+          'index.html'
+        )
+      );
+    }
+  );
+}
 
 /* =========================================================
    START SERVER
