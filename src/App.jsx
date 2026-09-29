@@ -1,79 +1,101 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  Routes
+} from 'react-router-dom';
+
 import Navbar from './components/Navbar';
 
 import DashboardPage from './pages/DashboardPage';
 import ProjectMasterPage from './pages/ProjectMasterPage';
 import BusinessPartnerPage from './pages/BusinessPartnerPage';
 import ProjectPhasesPage from './pages/ProjectPhasesPage';
-import WeeklyPlanningPage from './pages/WeeklyPlanningPage';
+import ResourceMasterPage from './pages/ResourceMasterPage';
 import ResourceAllocationPage from './pages/ResourceAllocationPage';
 import ProjectPlanPage from './pages/ProjectPlanPage';
-import ResourceMasterPage from './pages/ResourceMasterPage';
 import ProjectFIPage from './pages/ProjectFIPage';
-import MasterDataPage from './pages/MasterDataPage';
 
 function App() {
   return (
-    <>
+    <div className="app-shell">
+
       <Navbar />
 
-      <Routes>
-        <Route
-          path="/"
-          element={<Navigate to="/dashboard" replace />}
-        />
+      <main className="app-main">
 
-        <Route
-          path="/dashboard"
-          element={<DashboardPage />}
-        />
+        <Routes>
 
-        <Route
-          path="/projects"
-          element={<ProjectMasterPage />}
-        />
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to="/dashboard"
+                replace
+              />
+            }
+          />
 
-        <Route
-          path="/business-partners"
-          element={<BusinessPartnerPage />}
-        />
+          <Route
+            path="/dashboard"
+            element={
+              <DashboardPage />
+            }
+          />
 
-        <Route
-          path="/project-phases"
-          element={<ProjectPhasesPage />}
-        />
+          <Route
+            path="/projects"
+            element={
+              <ProjectMasterPage />
+            }
+          />
 
-        <Route
-          path="/weekly-planning"
-          element={<WeeklyPlanningPage />}
-        />
+          <Route
+            path="/business-partners"
+            element={
+              <BusinessPartnerPage />
+            }
+          />
 
-        <Route
-          path="/resource-allocation"
-          element={<ResourceAllocationPage />}
-        />
+          <Route
+            path="/project-phases"
+            element={
+              <ProjectPhasesPage />
+            }
+          />
 
-        <Route
-          path="/project-plan"
-          element={<ProjectPlanPage />}
-        />
+          <Route
+            path="/resource-master"
+            element={
+              <ResourceMasterPage />
+            }
+          />
 
-        <Route
-          path="/resource-master"
-          element={<ResourceMasterPage />}
-        />
+          <Route
+            path="/resource-allocation"
+            element={
+              <ResourceAllocationPage />
+            }
+          />
 
-        <Route
-          path="/project-fi"
-          element={<ProjectFIPage />}
-        />
+          <Route
+            path="/project-plan"
+            element={
+              <ProjectPlanPage />
+            }
+          />
 
-        <Route
-          path="/master-data"
-          element={<MasterDataPage />}
-        />
-      </Routes>
-    </>
+          <Route
+            path="/project-fi"
+            element={
+              <ProjectFIPage />
+            }
+          />
+
+        </Routes>
+
+      </main>
+
+    </div>
   );
 }
 

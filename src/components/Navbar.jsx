@@ -2,86 +2,140 @@ import { NavLink } from 'react-router-dom';
 
 function Navbar() {
   const getNavClass = ({ isActive }) =>
-    isActive ? 'nav-link active' : 'nav-link';
+    isActive
+      ? 'sidebar-link active'
+      : 'sidebar-link';
 
   return (
-    <nav className="navbar">
-      <div className="navbar-title">
-        PPBMA
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-brand">
+          PPBMA
+        </div>
+
+        <div className="sidebar-subtitle">
+          Planning & Project
+          <br />
+          Baseline Management
+        </div>
       </div>
 
-      <div className="navbar-links">
+      <nav className="sidebar-navigation">
         <NavLink
           to="/dashboard"
           className={getNavClass}
         >
-          Dashboard
+          <span className="sidebar-icon">
+            ▦
+          </span>
+
+          <span>
+            Dashboard
+          </span>
         </NavLink>
 
         <NavLink
           to="/projects"
           className={getNavClass}
         >
-          Project Master
-        </NavLink>
+          <span className="sidebar-icon">
+            ◫
+          </span>
 
-        <NavLink
-          to="/project-phases"
-          className={getNavClass}
-        >
-          Project Phases
-        </NavLink>
-
-        <NavLink
-          to="/weekly-planning"
-          className={getNavClass}
-        >
-          Weekly Planning
-        </NavLink>
-
-        <NavLink
-          to="/resource-allocation"
-          className={getNavClass}
-        >
-          Resource Allocation
-        </NavLink>
-
-        <NavLink
-          to="/project-plan"
-          className={getNavClass}
-        >
-          Project Plan
-        </NavLink>
-
-        <NavLink
-          to="/resource-master"
-          className={getNavClass}
-        >
-          Resource Master
-        </NavLink>
-
-        <NavLink
-          to="/project-fi"
-          className={getNavClass}
-        >
-          Project Financials
+          <span>
+            Project Master
+          </span>
         </NavLink>
 
         <NavLink
           to="/business-partners"
           className={getNavClass}
         >
-          Business Partner
+          <span className="sidebar-icon">
+            ◉
+          </span>
+
+          <span>
+            Business Partner
+          </span>
         </NavLink>
 
         <NavLink
-          to="/master-data"
+          to="/project-phases"
           className={getNavClass}
         >
-          Master Data
+          <span className="sidebar-icon">
+            ◇
+          </span>
+
+          <span>
+            Project Phases
+          </span>
         </NavLink>
+
+        <NavLink
+          to="/resource-master"
+          className={getNavClass}
+        >
+          <span className="sidebar-icon">
+            ♙
+          </span>
+
+          <span>
+            Resource Master
+          </span>
+        </NavLink>
+
+        <NavLink
+          to="/resource-allocation"
+          className={getNavClass}
+        >
+          <span className="sidebar-icon">
+            ▤
+          </span>
+
+          <span>
+            Resource Allocation
+          </span>
+        </NavLink>
+
+        <NavLink
+          to="/project-plan"
+          className={getNavClass}
+        >
+          <span className="sidebar-icon">
+            ▥
+          </span>
+
+          <span>
+            Project Plan
+          </span>
+        </NavLink>
+
+        <NavLink
+          to="/project-fi"
+          className={getNavClass}
+        >
+          <span className="sidebar-icon">
+            $
+          </span>
+
+          <span>
+            Project Financials
+          </span>
+        </NavLink>
+      </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-footer-title">
+          PPBMA
+        </div>
+
+        <div className="sidebar-footer-text">
+          Project Planning System
+        </div>
       </div>
-    </nav>
+    </aside>
   );
 }
 
