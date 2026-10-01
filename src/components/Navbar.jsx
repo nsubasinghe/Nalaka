@@ -1,6 +1,10 @@
 import { NavLink } from 'react-router-dom';
 
-function Navbar() {
+function Navbar({
+  user,
+  onLogout,
+  loggingOut = false
+}) {
   const getNavClass = ({ isActive }) =>
     isActive
       ? 'sidebar-link active'
@@ -127,6 +131,57 @@ function Navbar() {
       </nav>
 
       <div className="sidebar-footer">
+        {user && (
+          <div
+            style={{
+              marginBottom: '12px',
+              overflowWrap: 'anywhere'
+            }}
+          >
+            <div className="sidebar-footer-title">
+              {user.username}
+            </div>
+
+            <div className="sidebar-footer-text">
+              {user.roleid}
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onLogout}
+          disabled={
+            loggingOut ||
+            !onLogout
+          }
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            width: '100%',
+            padding: '11px 14px',
+            marginBottom: '14px',
+            border: 'none',
+            borderRadius: '8px',
+            background: '#ffffff',
+            color: '#174679',
+            fontWeight: 600,
+            cursor: loggingOut
+              ? 'wait'
+              : 'pointer'
+          }}
+        >
+          <span aria-hidden="true">
+            ↪
+          </span>
+
+          {loggingOut
+            ? 'Signing out...'
+            : 'Sign out'}
+        </button>
+
         <div className="sidebar-footer-title">
           PPBMA
         </div>

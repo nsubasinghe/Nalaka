@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 
 import {
   dirname,
@@ -30,9 +29,24 @@ const currentDirectory =
    GLOBAL MIDDLEWARE
 ========================================================= */
 
-app.use(cors());
+/*
+ * CORS is intentionally not enabled.
+ *
+ * Development:
+ * The React frontend accesses /api through
+ * the Vite development proxy.
+ *
+ * Production:
+ * Express serves the frontend and API
+ * from the same application origin.
+ *
+ * Authentication and CSRF protections
+ * remain implemented in the API routes.
+ */
 
-app.use(express.json());
+app.use(
+  express.json()
+);
 
 /* =========================================================
    API ROUTES

@@ -7,15 +7,41 @@ import {
   sendDatabaseError
 } from '../utils/database.js';
 
-const router =
-  express.Router();
+import {
+  requireAuth,
+  requireRole,
+  requireAdmin
+} from '../middleware/auth.middleware.js';
+
+const router = express.Router();
+
+/* =========================================================
+   AUTHORIZED MASTER DATA READ ACCESS
+========================================================= */
+
+const requireMasterDataRead = requireRole(
+  'ADMIN',
+  'PROJECT_MANAGER',
+  'PROJECT_MEMBER',
+  'VIEWER'
+);
 
 /* =========================================================
    GET BUSINESS PARTNERS
+
+   ALLOWED ROLES:
+   - ADMIN
+   - PROJECT_MANAGER
+   - PROJECT_MEMBER
+   - VIEWER
 ========================================================= */
 
 router.get(
   '/business-partners',
+
+  requireAuth,
+  requireMasterDataRead,
+
   async (req, res) => {
     try {
       if (
@@ -46,9 +72,11 @@ router.get(
 
       return res.json({
         success: true,
+
         businessPartners:
           result.rows
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -61,10 +89,20 @@ router.get(
 
 /* =========================================================
    GET CUSTOMERS
+
+   ALLOWED ROLES:
+   - ADMIN
+   - PROJECT_MANAGER
+   - PROJECT_MEMBER
+   - VIEWER
 ========================================================= */
 
 router.get(
   '/customers',
+
+  requireAuth,
+  requireMasterDataRead,
+
   async (req, res) => {
     try {
       if (
@@ -95,9 +133,11 @@ router.get(
 
       return res.json({
         success: true,
+
         customers:
           result.rows
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -110,10 +150,17 @@ router.get(
 
 /* =========================================================
    CREATE BUSINESS PARTNER
+
+   ALLOWED ROLE:
+   - ADMIN
 ========================================================= */
 
 router.post(
   '/business-partners',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -144,6 +191,7 @@ router.post(
           .status(400)
           .json({
             success: false,
+
             error:
               'Partner ID and Description are required.'
           });
@@ -156,6 +204,7 @@ router.post(
               "PartnerId",
               "Description"
             )
+
             VALUES (
               $1,
               $2
@@ -178,11 +227,14 @@ router.post(
         .status(201)
         .json({
           success: true,
+
           message:
             'Business Partner saved successfully.',
+
           businessPartner:
             result.rows[0]
         });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -195,10 +247,17 @@ router.post(
 
 /* =========================================================
    UPDATE BUSINESS PARTNER
+
+   ALLOWED ROLE:
+   - ADMIN
 ========================================================= */
 
 router.put(
   '/business-partners/:partnerid',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -229,6 +288,7 @@ router.put(
           .status(400)
           .json({
             success: false,
+
             error:
               'Partner ID and Description are required.'
           });
@@ -265,6 +325,7 @@ router.put(
           .status(404)
           .json({
             success: false,
+
             error:
               'Business Partner was not found.'
           });
@@ -272,11 +333,14 @@ router.put(
 
       return res.json({
         success: true,
+
         message:
           'Business Partner updated successfully.',
+
         businessPartner:
           result.rows[0]
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -289,10 +353,17 @@ router.put(
 
 /* =========================================================
    DELETE BUSINESS PARTNER
+
+   ALLOWED ROLE:
+   - ADMIN
 ========================================================= */
 
 router.delete(
   '/business-partners/:partnerid',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -337,6 +408,7 @@ router.delete(
           .status(404)
           .json({
             success: false,
+
             error:
               'Business Partner was not found.'
           });
@@ -344,11 +416,14 @@ router.delete(
 
       return res.json({
         success: true,
+
         message:
           'Business Partner deleted successfully.',
+
         businessPartner:
           result.rows[0]
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,

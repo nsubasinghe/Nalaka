@@ -7,15 +7,35 @@ import {
   sendDatabaseError
 } from '../utils/database.js';
 
-const router =
-  express.Router();
+import {
+  requireAuth,
+  requireRole
+} from '../middleware/auth.middleware.js';
+
+const router = express.Router();
 
 /* =========================================================
    GET RESOURCE TYPES
+
+   ALLOWED ROLES:
+   - ADMIN
+   - PROJECT_MANAGER
+   - PROJECT_MEMBER
+   - VIEWER
 ========================================================= */
 
 router.get(
   '/',
+
+  requireAuth,
+
+  requireRole(
+    'ADMIN',
+    'PROJECT_MANAGER',
+    'PROJECT_MEMBER',
+    'VIEWER'
+  ),
+
   async (req, res) => {
     try {
       if (
@@ -46,9 +66,11 @@ router.get(
 
       return res.json({
         success: true,
+
         resourceTypes:
           result.rows
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,

@@ -7,15 +7,23 @@ import {
   sendDatabaseError
 } from '../utils/database.js';
 
+import {
+  requireAdmin
+} from '../middleware/auth.middleware.js';
+
 const router =
   express.Router();
 
 /* =========================================================
    GET DATABASE TABLES
+   ADMINISTRATOR ONLY
 ========================================================= */
 
 router.get(
   '/tables',
+
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -52,6 +60,7 @@ router.get(
               row.table_name
           )
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,

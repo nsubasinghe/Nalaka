@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
 const initialProjectType = {
   projecttype: '',
@@ -64,6 +65,10 @@ function MasterDataPage() {
 
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
+
+  /* =========================================================
+     LOAD MASTER DATA
+  ========================================================= */
 
   const loadMasterData = async ({
     preserveMessage = false
@@ -175,6 +180,7 @@ function MasterDataPage() {
       );
     } catch (error) {
       setMessageType('error');
+
       setMessage(
         `✕ ${
           error.message ||
@@ -199,6 +205,10 @@ function MasterDataPage() {
     setMessage(`✓ ${text}`);
   };
 
+  /* =========================================================
+     SAVE PROJECT TYPE
+  ========================================================= */
+
   const saveProjectType = async (event) => {
     event.preventDefault();
 
@@ -216,7 +226,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/project-types',
         {
           method: 'POST',
@@ -249,6 +259,10 @@ function MasterDataPage() {
     }
   };
 
+  /* =========================================================
+     SAVE CURRENCY
+  ========================================================= */
+
   const saveCurrency = async (event) => {
     event.preventDefault();
 
@@ -266,7 +280,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/currencies',
         {
           method: 'POST',
@@ -299,6 +313,10 @@ function MasterDataPage() {
     }
   };
 
+  /* =========================================================
+     SAVE PROJECT PHASE
+  ========================================================= */
+
   const saveProjectPhase = async (event) => {
     event.preventDefault();
 
@@ -316,7 +334,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/project-phases',
         {
           method: 'POST',
@@ -349,6 +367,10 @@ function MasterDataPage() {
     }
   };
 
+  /* =========================================================
+     SAVE RESOURCE TYPE
+  ========================================================= */
+
   const saveResourceType = async (event) => {
     event.preventDefault();
 
@@ -366,7 +388,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/resource-types',
         {
           method: 'POST',
@@ -399,6 +421,10 @@ function MasterDataPage() {
     }
   };
 
+  /* =========================================================
+     SAVE ROLE CATEGORY
+  ========================================================= */
+
   const saveRoleCategory = async (event) => {
     event.preventDefault();
 
@@ -416,7 +442,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/role-categories',
         {
           method: 'POST',
@@ -449,6 +475,10 @@ function MasterDataPage() {
     }
   };
 
+  /* =========================================================
+     SAVE PROJECT ROLE
+  ========================================================= */
+
   const saveProjectRole = async (event) => {
     event.preventDefault();
 
@@ -467,7 +497,7 @@ function MasterDataPage() {
     try {
       setSaving(true);
 
-      const response = await fetch(
+      const response = await authenticatedFetch(
         '/api/project-roles',
         {
           method: 'POST',
@@ -499,6 +529,10 @@ function MasterDataPage() {
       setSaving(false);
     }
   };
+
+  /* =========================================================
+     PROJECT TYPES SECTION
+  ========================================================= */
 
   const renderProjectTypes = () => (
     <>
@@ -565,6 +599,10 @@ function MasterDataPage() {
       </div>
     </>
   );
+
+  /* =========================================================
+     CURRENCIES SECTION
+  ========================================================= */
 
   const renderCurrencies = () => (
     <>
@@ -633,6 +671,10 @@ function MasterDataPage() {
     </>
   );
 
+  /* =========================================================
+     PROJECT PHASES SECTION
+  ========================================================= */
+
   const renderProjectPhases = () => (
     <>
       <h2>Project Phases</h2>
@@ -698,6 +740,10 @@ function MasterDataPage() {
       </div>
     </>
   );
+
+  /* =========================================================
+     RESOURCE TYPES SECTION
+  ========================================================= */
 
   const renderResourceTypes = () => (
     <>
@@ -765,6 +811,10 @@ function MasterDataPage() {
     </>
   );
 
+  /* =========================================================
+     ROLE CATEGORIES SECTION
+  ========================================================= */
+
   const renderRoleCategories = () => (
     <>
       <h2>Role Categories</h2>
@@ -830,6 +880,10 @@ function MasterDataPage() {
       </div>
     </>
   );
+
+  /* =========================================================
+     PROJECT ROLES SECTION
+  ========================================================= */
 
   const renderProjectRoles = () => (
     <>
@@ -934,6 +988,10 @@ function MasterDataPage() {
     </>
   );
 
+  /* =========================================================
+     SELECT ACTIVE SECTION
+  ========================================================= */
+
   const renderSection = () => {
     switch (activeSection) {
       case 'currencies':
@@ -956,6 +1014,10 @@ function MasterDataPage() {
         return renderProjectTypes();
     }
   };
+
+  /* =========================================================
+     PAGE
+  ========================================================= */
 
   return (
     <div className="page-wrap">

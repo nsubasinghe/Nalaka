@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { authenticatedFetch } from '../api/authenticatedFetch.js';
+
 const initialForm = {
   projectcode: '',
   versionid: '',
@@ -80,6 +82,7 @@ function ProjectMasterPage() {
         );
       } catch (error) {
         setMessageType('error');
+
         setMessage(
           `✕ ${
             error.message ||
@@ -133,13 +136,26 @@ function ProjectMasterPage() {
     setMessageType('');
 
     try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(form)
-      });
+      /*
+       * authenticatedFetch automatically:
+       *
+       * 1. Retrieves a CSRF token for the current session.
+       * 2. Adds the X-CSRF-Token request header.
+       * 3. Includes the browser's session cookie.
+       *
+       * Existing form data and API behavior are preserved.
+       */
+
+      const response = await authenticatedFetch(
+        '/api/projects',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(form)
+        }
+      );
 
       const result = await response.json();
 
@@ -159,6 +175,7 @@ function ProjectMasterPage() {
       }, 4000);
     } catch (error) {
       setMessageType('error');
+
       setMessage(
         `✕ ${
           error.message ||

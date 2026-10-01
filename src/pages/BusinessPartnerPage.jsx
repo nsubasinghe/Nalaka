@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
 const initialForm = {
   partnerid: '',
@@ -133,7 +134,14 @@ function BusinessPartnerPage() {
         ? `/api/business-partners/${editingPartnerId}`
         : '/api/business-partners';
 
-      const response = await fetch(url, {
+      /*
+       * authenticatedFetch automatically:
+       * 1. Retrieves a session-bound CSRF token.
+       * 2. Adds the X-CSRF-Token header.
+       * 3. Includes the current browser session.
+       */
+
+      const response = await authenticatedFetch(url, {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -200,7 +208,11 @@ function BusinessPartnerPage() {
     setMessageType('');
 
     try {
-      const response = await fetch(
+      /*
+       * DELETE requests also require CSRF protection.
+       */
+
+      const response = await authenticatedFetch(
         `/api/business-partners/${partnerid}`,
         {
           method: 'DELETE'

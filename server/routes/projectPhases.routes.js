@@ -7,15 +7,41 @@ import {
   sendDatabaseError
 } from '../utils/database.js';
 
-const router =
-  express.Router();
+import {
+  requireAuth,
+  requireRole,
+  requireAdmin
+} from '../middleware/auth.middleware.js';
+
+const router = express.Router();
+
+/* =========================================================
+   PROJECT PHASE MASTER READ PERMISSIONS
+========================================================= */
+
+const requireMasterDataRead = requireRole(
+  'ADMIN',
+  'PROJECT_MANAGER',
+  'PROJECT_MEMBER',
+  'VIEWER'
+);
 
 /* =========================================================
    GET PROJECT PHASES
+
+   ALLOWED:
+   - ADMIN
+   - PROJECT_MANAGER
+   - PROJECT_MEMBER
+   - VIEWER
 ========================================================= */
 
 router.get(
   '/',
+
+  requireAuth,
+  requireMasterDataRead,
+
   async (req, res) => {
     try {
       if (
@@ -49,6 +75,7 @@ router.get(
         projectPhases:
           result.rows
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -61,10 +88,17 @@ router.get(
 
 /* =========================================================
    CREATE PROJECT PHASE
+
+   ALLOWED:
+   - ADMIN ONLY
 ========================================================= */
 
 router.post(
   '/',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -118,6 +152,7 @@ router.post(
               "PhaseId",
               "Description"
             )
+
             VALUES (
               $1,
               $2
@@ -145,6 +180,7 @@ router.post(
           projectPhase:
             result.rows[0]
         });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -157,10 +193,17 @@ router.post(
 
 /* =========================================================
    UPDATE PROJECT PHASE
+
+   ALLOWED:
+   - ADMIN ONLY
 ========================================================= */
 
 router.put(
   '/:phaseid',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -238,6 +281,7 @@ router.put(
         projectPhase:
           result.rows[0]
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,
@@ -250,10 +294,17 @@ router.put(
 
 /* =========================================================
    DELETE PROJECT PHASE
+
+   ALLOWED:
+   - ADMIN ONLY
 ========================================================= */
 
 router.delete(
   '/:phaseid',
+
+  requireAuth,
+  requireAdmin,
+
   async (req, res) => {
     try {
       if (
@@ -269,6 +320,10 @@ router.delete(
         req.params
           .phaseid
           ?.trim();
+
+      /* ===============================================
+         CHECK PROJECT ASSIGNMENTS
+      =============================================== */
 
       const assignmentCount =
         await pool.query(
@@ -287,6 +342,10 @@ router.delete(
           ]
         );
 
+      /* ===============================================
+         CHECK PROJECT VERSION ASSIGNMENTS
+      =============================================== */
+
       const versionCount =
         await pool.query(
           `
@@ -304,6 +363,10 @@ router.delete(
           ]
         );
 
+      /* ===============================================
+         PREVENT DELETION OF ASSIGNED PHASES
+      =============================================== */
+
       if (
         assignmentCount
           .rows[0]
@@ -320,6 +383,10 @@ router.delete(
               'This phase is assigned to one or more projects or project versions. Remove those assignments before deleting the master phase.'
           });
       }
+
+      /* ===============================================
+         DELETE UNASSIGNED PHASE
+      =============================================== */
 
       const result =
         await pool.query(
@@ -360,6 +427,7 @@ router.delete(
         projectPhase:
           result.rows[0]
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,

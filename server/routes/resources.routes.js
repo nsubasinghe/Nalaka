@@ -7,15 +7,22 @@ import {
   sendDatabaseError
 } from '../utils/database.js';
 
-const router =
-  express.Router();
+import {
+  requireAuth
+} from '../middleware/auth.middleware.js';
+
+const router = express.Router();
 
 /* =========================================================
    GET RESOURCES
+   AUTHENTICATED USERS
 ========================================================= */
 
 router.get(
   '/',
+
+  requireAuth,
+
   async (req, res) => {
     try {
       if (
@@ -26,6 +33,41 @@ router.get(
       ) {
         return;
       }
+
+      /* ===============================================
+         CHECK USER ROLE
+      =============================================== */
+
+      const roleId =
+        req.auth.roleid;
+
+      const allowedRoles = [
+        'ADMIN',
+        'PROJECT_MANAGER',
+        'PROJECT_MEMBER',
+        'VIEWER'
+      ];
+
+      if (
+        !allowedRoles.includes(
+          roleId
+        )
+      ) {
+        return res
+          .status(403)
+          .json({
+            success: false,
+            error:
+              'You do not have permission to view resources.'
+          });
+      }
+
+      const isAdmin =
+        roleId === 'ADMIN';
+
+      /* ===============================================
+         RETRIEVE RESOURCE INFORMATION
+      =============================================== */
 
       const result =
         await pool.query(
@@ -72,11 +114,52 @@ router.get(
           `
         );
 
+      /* ===============================================
+         FILTER SENSITIVE FINANCIAL FIELDS
+      =============================================== */
+
+      const resources =
+        result.rows.map(
+          (resource) => {
+            if (isAdmin) {
+              return resource;
+            }
+
+            return {
+              resourceid:
+                resource.resourceid,
+
+              firstname:
+                resource.firstname,
+
+              lastname:
+                resource.lastname,
+
+              resourcetype:
+                resource.resourcetype,
+
+              internalroleid:
+                resource.internalroleid,
+
+              roledescription:
+                resource.roledescription,
+
+              location:
+                resource.location
+            };
+          }
+        );
+
+      /* ===============================================
+         RETURN AUTHORIZED RESOURCE DATA
+      =============================================== */
+
       return res.json({
         success: true,
-        resources:
-          result.rows
+
+        resources
       });
+
     } catch (error) {
       return sendDatabaseError(
         res,

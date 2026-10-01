@@ -1,196 +1,111 @@
-import {
-  useEffect,
-  useMemo,
-  useState
-} from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { authenticatedFetch } from '../api/authenticatedFetch.js';
 
 function ProjectPhasesPage() {
   /* =========================================================
      MASTER DATA
   ========================================================= */
 
-  const [
-    projects,
-    setProjects
-  ] = useState([]);
-
-  const [
-    projectPhaseMaster,
-    setProjectPhaseMaster
-  ] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [projectPhaseMaster, setProjectPhaseMaster] = useState([]);
 
   /* =========================================================
      MASTER PHASE FORM
   ========================================================= */
 
-  const [
-    newPhaseId,
-    setNewPhaseId
-  ] = useState('');
+  const [newPhaseId, setNewPhaseId] = useState('');
+  const [newPhaseDescription, setNewPhaseDescription] = useState('');
 
-  const [
-    newPhaseDescription,
-    setNewPhaseDescription
-  ] = useState('');
-
-  const [
-    creatingMasterPhase,
-    setCreatingMasterPhase
-  ] = useState(false);
-
-  const [
-    savingMasterPhaseId,
-    setSavingMasterPhaseId
-  ] = useState('');
-
-  const [
-    deletingMasterPhaseId,
-    setDeletingMasterPhaseId
-  ] = useState('');
+  const [creatingMasterPhase, setCreatingMasterPhase] = useState(false);
+  const [savingMasterPhaseId, setSavingMasterPhaseId] = useState('');
+  const [deletingMasterPhaseId, setDeletingMasterPhaseId] = useState('');
 
   /* =========================================================
      PROJECT PHASE ASSIGNMENTS
   ========================================================= */
 
-  const [
-    selectedProjectCode,
-    setSelectedProjectCode
-  ] = useState('');
+  const [selectedProjectCode, setSelectedProjectCode] = useState('');
+  const [assignedPhases, setAssignedPhases] = useState([]);
+  const [selectedPhaseIds, setSelectedPhaseIds] = useState([]);
 
-  const [
-    assignedPhases,
-    setAssignedPhases
-  ] = useState([]);
-
-  const [
-    selectedPhaseIds,
-    setSelectedPhaseIds
-  ] = useState([]);
-
-  const [
-    assignmentLoading,
-    setAssignmentLoading
-  ] = useState(false);
-
-  const [
-    addingAssignment,
-    setAddingAssignment
-  ] = useState(false);
-
-  const [
-    removingAssignmentPhaseId,
-    setRemovingAssignmentPhaseId
-  ] = useState('');
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [addingAssignment, setAddingAssignment] = useState(false);
+  const [removingAssignmentPhaseId, setRemovingAssignmentPhaseId] =
+    useState('');
 
   /* =========================================================
      PAGE STATE
   ========================================================= */
 
-  const [
-    loading,
-    setLoading
-  ] = useState(true);
-
-  const [
-    message,
-    setMessage
-  ] = useState('');
-
-  const [
-    messageType,
-    setMessageType
-  ] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
 
   /* =========================================================
      LOAD PROJECTS
   ========================================================= */
 
   const loadProjects = async () => {
-    const response =
-      await fetch(
-        '/api/projects'
-      );
-
-    const result =
-      await response.json();
+    const response = await fetch('/api/projects');
+    const result = await response.json();
 
     if (!response.ok) {
       throw new Error(
-        result.error ||
-          'Failed to load projects.'
+        result.error || 'Failed to load projects.'
       );
     }
 
-    setProjects(
-      result.projects || []
-    );
+    setProjects(result.projects || []);
   };
 
   /* =========================================================
      LOAD PHASE MASTER
   ========================================================= */
 
-  const loadProjectPhaseMaster =
-    async () => {
-      const response =
-        await fetch(
-          '/api/project-phases'
-        );
+  const loadProjectPhaseMaster = async () => {
+    const response = await fetch('/api/project-phases');
+    const result = await response.json();
 
-      const result =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.error ||
-            'Failed to load Project Phase Master.'
-        );
-      }
-
-      setProjectPhaseMaster(
-        (
-          result.projectPhases ||
-          []
-        ).map(
-          (phase) => ({
-            phaseid:
-              phase.phaseid,
-            description:
-              phase.description || ''
-          })
-        )
+    if (!response.ok) {
+      throw new Error(
+        result.error || 'Failed to load Project Phase Master.'
       );
-    };
+    }
+
+    setProjectPhaseMaster(
+      (result.projectPhases || []).map((phase) => ({
+        phaseid: phase.phaseid,
+        description: phase.description || ''
+      }))
+    );
+  };
 
   /* =========================================================
      INITIAL LOAD
   ========================================================= */
 
   useEffect(() => {
-    const loadInitialData =
-      async () => {
-        setLoading(true);
+    const loadInitialData = async () => {
+      setLoading(true);
 
-        try {
-          await Promise.all([
-            loadProjects(),
-            loadProjectPhaseMaster()
-          ]);
-        } catch (error) {
-          setMessageType(
-            'error'
-          );
+      try {
+        await Promise.all([
+          loadProjects(),
+          loadProjectPhaseMaster()
+        ]);
+      } catch (error) {
+        setMessageType('error');
 
-          setMessage(
-            `✕ ${
-              error.message ||
-              'Failed to load Project Phase data.'
-            }`
-          );
-        } finally {
-          setLoading(false);
-        }
-      };
+        setMessage(
+          `✕ ${
+            error.message ||
+            'Failed to load Project Phase data.'
+          }`
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     loadInitialData();
   }, []);
@@ -199,795 +114,567 @@ function ProjectPhasesPage() {
      UNIQUE PROJECTS
   ========================================================= */
 
-  const uniqueProjects =
-    useMemo(() => {
-      const map =
-        new Map();
+  const uniqueProjects = useMemo(() => {
+    const map = new Map();
 
-      projects.forEach(
-        (project) => {
-          const existing =
-            map.get(
-              project.projectcode
-            );
+    projects.forEach((project) => {
+      const existing = map.get(project.projectcode);
 
-          if (!existing) {
-            map.set(
-              project.projectcode,
-              project
-            );
+      if (!existing) {
+        map.set(project.projectcode, project);
+        return;
+      }
 
-            return;
-          }
+      if (project.versionstatus === 'A') {
+        map.set(project.projectcode, project);
+      }
+    });
 
-          if (
-            project.versionstatus ===
-            'A'
-          ) {
-            map.set(
-              project.projectcode,
-              project
-            );
-          }
-        }
-      );
-
-      return Array.from(
-        map.values()
-      ).sort(
-        (a, b) =>
-          String(
-            a.projectcode
-          ).localeCompare(
-            String(
-              b.projectcode
-            )
-          )
-      );
-    }, [
-      projects
-    ]);
+    return Array.from(map.values()).sort((a, b) =>
+      String(a.projectcode).localeCompare(
+        String(b.projectcode)
+      )
+    );
+  }, [projects]);
 
   /* =========================================================
      SELECTED PROJECT
   ========================================================= */
 
-  const selectedProject =
-    useMemo(() => {
-      return uniqueProjects.find(
-        (project) =>
-          String(
-            project.projectcode
-          ) ===
-          String(
-            selectedProjectCode
-          )
-      );
-    }, [
-      uniqueProjects,
-      selectedProjectCode
-    ]);
+  const selectedProject = useMemo(() => {
+    return uniqueProjects.find(
+      (project) =>
+        String(project.projectcode) ===
+        String(selectedProjectCode)
+    );
+  }, [uniqueProjects, selectedProjectCode]);
 
   /* =========================================================
      ASSIGNED PHASE IDS
   ========================================================= */
 
-  const assignedPhaseIds =
-    useMemo(() => {
-      return new Set(
-        assignedPhases.map(
-          (phase) =>
-            String(
-              phase.phaseid
-            )
-        )
-      );
-    }, [
-      assignedPhases
-    ]);
+  const assignedPhaseIds = useMemo(() => {
+    return new Set(
+      assignedPhases.map((phase) =>
+        String(phase.phaseid)
+      )
+    );
+  }, [assignedPhases]);
 
   /* =========================================================
      AVAILABLE PHASES
   ========================================================= */
 
-  const availablePhases =
-    useMemo(() => {
-      return projectPhaseMaster.filter(
-        (phase) =>
-          !assignedPhaseIds.has(
-            String(
-              phase.phaseid
-            )
-          )
-      );
-    }, [
-      projectPhaseMaster,
-      assignedPhaseIds
-    ]);
+  const availablePhases = useMemo(() => {
+    return projectPhaseMaster.filter(
+      (phase) =>
+        !assignedPhaseIds.has(
+          String(phase.phaseid)
+        )
+    );
+  }, [projectPhaseMaster, assignedPhaseIds]);
 
   /* =========================================================
      LOAD PROJECT PHASE ASSIGNMENTS
   ========================================================= */
 
-  const loadProjectAssignments =
-    async (
-      projectCode
-    ) => {
-      if (!projectCode) {
-        setAssignedPhases([]);
-        return;
-      }
+  const loadProjectAssignments = async (projectCode) => {
+    if (!projectCode) {
+      setAssignedPhases([]);
+      return;
+    }
 
-      setAssignmentLoading(
-        true
+    setAssignmentLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/project-phase-assignments/${encodeURIComponent(
+          projectCode
+        )}`
       );
 
-      try {
-        const response =
-          await fetch(
-            `/api/project-phase-assignments/${encodeURIComponent(
-              projectCode
-            )}`
-          );
+      const result = await response.json();
 
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to load project phase assignments.'
-          );
-        }
-
-        setAssignedPhases(
-          (
-            result.phases ||
-            []
-          ).map(
-            (phase) => ({
-              projectcode:
-                phase.projectcode,
-
-              phaseid:
-                phase.phaseid,
-
-              description:
-                phase.description ||
-                '',
-
-              sequenceno:
-                Number(
-                  phase.sequenceno ||
-                  0
-                )
-            })
-          )
-        );
-      } catch (error) {
-        setAssignedPhases([]);
-
-        throw error;
-      } finally {
-        setAssignmentLoading(
-          false
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to load project phase assignments.'
         );
       }
-    };
+
+      setAssignedPhases(
+        (result.phases || []).map((phase) => ({
+          projectcode: phase.projectcode,
+          phaseid: phase.phaseid,
+          description: phase.description || '',
+          sequenceno: Number(phase.sequenceno || 0)
+        }))
+      );
+    } catch (error) {
+      setAssignedPhases([]);
+      throw error;
+    } finally {
+      setAssignmentLoading(false);
+    }
+  };
 
   /* =========================================================
      REFRESH PHASE DATA
   ========================================================= */
 
-  const refreshPhaseData =
-    async () => {
-      await loadProjectPhaseMaster();
+  const refreshPhaseData = async () => {
+    await loadProjectPhaseMaster();
 
-      if (
-        selectedProjectCode
-      ) {
-        await loadProjectAssignments(
-          selectedProjectCode
-        );
-      }
-    };
+    if (selectedProjectCode) {
+      await loadProjectAssignments(selectedProjectCode);
+    }
+  };
 
   /* =========================================================
      PROJECT CHANGE
   ========================================================= */
 
-  const handleProjectChange =
-    async (event) => {
-      const projectCode =
-        event.target.value;
+  const handleProjectChange = async (event) => {
+    const projectCode = event.target.value;
 
-      setSelectedProjectCode(
-        projectCode
+    setSelectedProjectCode(projectCode);
+    setSelectedPhaseIds([]);
+    setAssignedPhases([]);
+    setMessage('');
+    setMessageType('');
+
+    if (!projectCode) {
+      return;
+    }
+
+    try {
+      await loadProjectAssignments(projectCode);
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to load project phases.'
+        }`
       );
-
-      setSelectedPhaseIds([]);
-
-      setAssignedPhases([]);
-
-      setMessage('');
-      setMessageType('');
-
-      if (!projectCode) {
-        return;
-      }
-
-      try {
-        await loadProjectAssignments(
-          projectCode
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to load project phases.'
-          }`
-        );
-      }
-    };
+    }
+  };
 
   /* =========================================================
      MASTER DESCRIPTION CHANGE
   ========================================================= */
 
-  const handleMasterDescriptionChange =
-    (
-      phaseId,
-      value
-    ) => {
-      setProjectPhaseMaster(
-        (current) =>
-          current.map(
-            (phase) =>
-              String(
-                phase.phaseid
-              ) ===
-              String(
-                phaseId
-              )
-                ? {
-                    ...phase,
-                    description:
-                      value
-                  }
-                : phase
-          )
-      );
+  const handleMasterDescriptionChange = (
+    phaseId,
+    value
+  ) => {
+    setProjectPhaseMaster((current) =>
+      current.map((phase) =>
+        String(phase.phaseid) === String(phaseId)
+          ? {
+              ...phase,
+              description: value
+            }
+          : phase
+      )
+    );
 
-      setMessage('');
-      setMessageType('');
-    };
+    setMessage('');
+    setMessageType('');
+  };
 
   /* =========================================================
      CREATE MASTER PHASE
+     CSRF PROTECTED POST
   ========================================================= */
 
-  const handleCreateMasterPhase =
-    async () => {
-      const phaseId =
-        newPhaseId
-          .trim()
-          .toUpperCase();
+  const handleCreateMasterPhase = async () => {
+    const phaseId = newPhaseId
+      .trim()
+      .toUpperCase();
 
-      const description =
-        newPhaseDescription
-          .trim();
+    const description = newPhaseDescription.trim();
 
-      if (
-        !phaseId ||
-        !description
-      ) {
-        setMessageType(
-          'error'
-        );
+    if (!phaseId || !description) {
+      setMessageType('error');
+      setMessage(
+        '✕ Phase ID and Description are required.'
+      );
+      return;
+    }
 
-        setMessage(
-          '✕ Phase ID and Description are required.'
-        );
+    if (phaseId.length > 2) {
+      setMessageType('error');
+      setMessage(
+        '✕ Phase ID cannot exceed 2 characters.'
+      );
+      return;
+    }
 
-        return;
-      }
+    setCreatingMasterPhase(true);
+    setMessage('');
+    setMessageType('');
 
-      if (
-        phaseId.length > 2
-      ) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          '✕ Phase ID cannot exceed 2 characters.'
-        );
-
-        return;
-      }
-
-      setCreatingMasterPhase(
-        true
+    try {
+      const response = await authenticatedFetch(
+        '/api/project-phases',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            phaseid: phaseId,
+            description
+          })
+        }
       );
 
-      setMessage('');
-      setMessageType('');
+      const result = await response.json();
 
-      try {
-        const response =
-          await fetch(
-            '/api/project-phases',
-            {
-              method:
-                'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-                  phaseid:
-                    phaseId,
-
-                  description
-                })
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to create Project Phase.'
-          );
-        }
-
-        setNewPhaseId('');
-        setNewPhaseDescription('');
-
-        await refreshPhaseData();
-
-        setMessageType(
-          'success'
-        );
-
-        setMessage(
-          `✓ Phase ${phaseId} created successfully.`
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to create Project Phase.'
-          }`
-        );
-      } finally {
-        setCreatingMasterPhase(
-          false
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to create Project Phase.'
         );
       }
-    };
+
+      setNewPhaseId('');
+      setNewPhaseDescription('');
+
+      await refreshPhaseData();
+
+      setMessageType('success');
+      setMessage(
+        `✓ Phase ${phaseId} created successfully.`
+      );
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to create Project Phase.'
+        }`
+      );
+    } finally {
+      setCreatingMasterPhase(false);
+    }
+  };
 
   /* =========================================================
      UPDATE MASTER PHASE
+     CSRF PROTECTED PUT
   ========================================================= */
 
-  const handleUpdateMasterPhase =
-    async (
-      phase
-    ) => {
-      const description =
-        String(
-          phase.description ||
-          ''
-        ).trim();
+  const handleUpdateMasterPhase = async (phase) => {
+    const description = String(
+      phase.description || ''
+    ).trim();
 
-      if (!description) {
-        setMessageType(
-          'error'
-        );
+    if (!description) {
+      setMessageType('error');
+      setMessage(
+        `✕ Description is required for Phase ${phase.phaseid}.`
+      );
+      return;
+    }
 
-        setMessage(
-          `✕ Description is required for Phase ${phase.phaseid}.`
-        );
+    setSavingMasterPhaseId(phase.phaseid);
+    setMessage('');
+    setMessageType('');
 
-        return;
-      }
-
-      setSavingMasterPhaseId(
-        phase.phaseid
+    try {
+      const response = await authenticatedFetch(
+        `/api/project-phases/${encodeURIComponent(
+          phase.phaseid
+        )}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            description
+          })
+        }
       );
 
-      setMessage('');
-      setMessageType('');
+      const result = await response.json();
 
-      try {
-        const response =
-          await fetch(
-            `/api/project-phases/${encodeURIComponent(
-              phase.phaseid
-            )}`,
-            {
-              method:
-                'PUT',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-                  description
-                })
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to update Project Phase.'
-          );
-        }
-
-        await refreshPhaseData();
-
-        setMessageType(
-          'success'
-        );
-
-        setMessage(
-          `✓ Phase ${phase.phaseid} updated successfully.`
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to update Project Phase.'
-          }`
-        );
-      } finally {
-        setSavingMasterPhaseId(
-          ''
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to update Project Phase.'
         );
       }
-    };
+
+      await refreshPhaseData();
+
+      setMessageType('success');
+      setMessage(
+        `✓ Phase ${phase.phaseid} updated successfully.`
+      );
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to update Project Phase.'
+        }`
+      );
+    } finally {
+      setSavingMasterPhaseId('');
+    }
+  };
 
   /* =========================================================
      DELETE MASTER PHASE
+     CSRF PROTECTED DELETE
   ========================================================= */
 
-  const handleDeleteMasterPhase =
-    async (
-      phase
-    ) => {
-      const confirmed =
-        window.confirm(
-          `Delete Phase ${phase.phaseid} - ${phase.description} from the Phase Master?\n\nA phase cannot be deleted while it is assigned to a project or project version.`
-        );
+  const handleDeleteMasterPhase = async (phase) => {
+    const confirmed = window.confirm(
+      `Delete Phase ${phase.phaseid} - ${phase.description} from the Phase Master?\n\nA phase cannot be deleted while it is assigned to a project or project version.`
+    );
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      setDeletingMasterPhaseId(
-        phase.phaseid
+    setDeletingMasterPhaseId(phase.phaseid);
+    setMessage('');
+    setMessageType('');
+
+    try {
+      const response = await authenticatedFetch(
+        `/api/project-phases/${encodeURIComponent(
+          phase.phaseid
+        )}`,
+        {
+          method: 'DELETE'
+        }
       );
 
-      setMessage('');
-      setMessageType('');
+      const result = await response.json();
 
-      try {
-        const response =
-          await fetch(
-            `/api/project-phases/${encodeURIComponent(
-              phase.phaseid
-            )}`,
-            {
-              method:
-                'DELETE'
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to delete Project Phase.'
-          );
-        }
-
-        await refreshPhaseData();
-
-        setMessageType(
-          'success'
-        );
-
-        setMessage(
-          `✓ Phase ${phase.phaseid} deleted from the Phase Master.`
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to delete Project Phase.'
-          }`
-        );
-      } finally {
-        setDeletingMasterPhaseId(
-          ''
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to delete Project Phase.'
         );
       }
-    };
+
+      await refreshPhaseData();
+
+      setMessageType('success');
+      setMessage(
+        `✓ Phase ${phase.phaseid} deleted from the Phase Master.`
+      );
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to delete Project Phase.'
+        }`
+      );
+    } finally {
+      setDeletingMasterPhaseId('');
+    }
+  };
 
   /* =========================================================
      MULTI PHASE SELECTION
   ========================================================= */
 
-  const handlePhaseSelectionChange =
-    (
-      phaseId,
-      checked
-    ) => {
-      setSelectedPhaseIds(
-        (current) => {
-          if (checked) {
-            if (
-              current.includes(
-                phaseId
-              )
-            ) {
-              return current;
-            }
-
-            return [
-              ...current,
-              phaseId
-            ];
-          }
-
-          return current.filter(
-            (id) =>
-              id !== phaseId
-          );
+  const handlePhaseSelectionChange = (
+    phaseId,
+    checked
+  ) => {
+    setSelectedPhaseIds((current) => {
+      if (checked) {
+        if (current.includes(phaseId)) {
+          return current;
         }
+
+        return [
+          ...current,
+          phaseId
+        ];
+      }
+
+      return current.filter(
+        (id) => id !== phaseId
       );
+    });
 
-      setMessage('');
-      setMessageType('');
-    };
+    setMessage('');
+    setMessageType('');
+  };
 
-  const handleSelectAllAvailablePhases =
-    () => {
-      setSelectedPhaseIds(
-        availablePhases.map(
-          (phase) =>
-            phase.phaseid
-        )
-      );
+  const handleSelectAllAvailablePhases = () => {
+    setSelectedPhaseIds(
+      availablePhases.map(
+        (phase) => phase.phaseid
+      )
+    );
 
-      setMessage('');
-      setMessageType('');
-    };
+    setMessage('');
+    setMessageType('');
+  };
 
-  const handleClearPhaseSelection =
-    () => {
-      setSelectedPhaseIds([]);
-
-      setMessage('');
-      setMessageType('');
-    };
+  const handleClearPhaseSelection = () => {
+    setSelectedPhaseIds([]);
+    setMessage('');
+    setMessageType('');
+  };
 
   /* =========================================================
      ASSIGN MULTIPLE PHASES TO PROJECT
+     CSRF PROTECTED POST
   ========================================================= */
 
-  const handleAssignSelectedPhases =
-    async () => {
-      if (
-        !selectedProjectCode
-      ) {
-        setMessageType(
-          'error'
-        );
+  const handleAssignSelectedPhases = async () => {
+    if (!selectedProjectCode) {
+      setMessageType('error');
+      setMessage(
+        '✕ Please select a project first.'
+      );
+      return;
+    }
 
-        setMessage(
-          '✕ Please select a project first.'
-        );
+    if (selectedPhaseIds.length === 0) {
+      setMessageType('error');
+      setMessage(
+        '✕ Select at least one phase to assign.'
+      );
+      return;
+    }
 
-        return;
-      }
+    const phaseIdsToAssign = [
+      ...selectedPhaseIds
+    ];
 
-      if (
-        selectedPhaseIds.length ===
-        0
-      ) {
-        setMessageType(
-          'error'
-        );
+    setAddingAssignment(true);
+    setMessage('');
+    setMessageType('');
 
-        setMessage(
-          '✕ Select at least one phase to assign.'
-        );
-
-        return;
-      }
-
-      const phaseIdsToAssign =
-        [...selectedPhaseIds];
-
-      setAddingAssignment(
-        true
+    try {
+      const response = await authenticatedFetch(
+        `/api/project-phase-assignments/${encodeURIComponent(
+          selectedProjectCode
+        )}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            phaseids: phaseIdsToAssign
+          })
+        }
       );
 
-      setMessage('');
-      setMessageType('');
+      const result = await response.json();
 
-      try {
-        const response =
-          await fetch(
-            `/api/project-phase-assignments/${encodeURIComponent(
-              selectedProjectCode
-            )}`,
-            {
-              method:
-                'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-                  phaseids:
-                    phaseIdsToAssign
-                })
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to assign phases to project.'
-          );
-        }
-
-        setSelectedPhaseIds([]);
-
-        await loadProjectAssignments(
-          selectedProjectCode
-        );
-
-        setMessageType(
-          'success'
-        );
-
-        setMessage(
-          `✓ ${phaseIdsToAssign.length} phase(s) assigned to Project ${selectedProjectCode} successfully.`
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to assign phases to project.'
-          }`
-        );
-      } finally {
-        setAddingAssignment(
-          false
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to assign phases to project.'
         );
       }
-    };
+
+      setSelectedPhaseIds([]);
+
+      await loadProjectAssignments(
+        selectedProjectCode
+      );
+
+      setMessageType('success');
+      setMessage(
+        `✓ ${phaseIdsToAssign.length} phase(s) assigned to Project ${selectedProjectCode} successfully.`
+      );
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to assign phases to project.'
+        }`
+      );
+    } finally {
+      setAddingAssignment(false);
+    }
+  };
 
   /* =========================================================
      REMOVE PHASE FROM PROJECT
+     CSRF PROTECTED DELETE
   ========================================================= */
 
-  const handleRemoveAssignment =
-    async (
-      phase
-    ) => {
-      const confirmed =
-        window.confirm(
-          `Remove ${phase.description} (${phase.phaseid}) from Project ${selectedProjectCode}?\n\nThis phase will be removed from the project's version memberships. If planning data already exists for this phase, the system will prevent the removal.`
-        );
+  const handleRemoveAssignment = async (phase) => {
+    const confirmed = window.confirm(
+      `Remove ${phase.description} (${phase.phaseid}) from Project ${selectedProjectCode}?\n\nThis phase will be removed from the project's version memberships. If planning data already exists for this phase, the system will prevent the removal.`
+    );
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      setRemovingAssignmentPhaseId(
-        phase.phaseid
+    setRemovingAssignmentPhaseId(
+      phase.phaseid
+    );
+
+    setMessage('');
+    setMessageType('');
+
+    try {
+      const response = await authenticatedFetch(
+        `/api/project-phase-assignments/${encodeURIComponent(
+          selectedProjectCode
+        )}/${encodeURIComponent(
+          phase.phaseid
+        )}`,
+        {
+          method: 'DELETE'
+        }
       );
 
-      setMessage('');
-      setMessageType('');
+      const result = await response.json();
 
-      try {
-        const response =
-          await fetch(
-            `/api/project-phase-assignments/${encodeURIComponent(
-              selectedProjectCode
-            )}/${encodeURIComponent(
-              phase.phaseid
-            )}`,
-            {
-              method:
-                'DELETE'
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-              'Failed to remove phase from project.'
-          );
-        }
-
-        await loadProjectAssignments(
-          selectedProjectCode
-        );
-
-        setMessageType(
-          'success'
-        );
-
-        setMessage(
-          `✓ ${phase.description} removed from Project ${selectedProjectCode}.`
-        );
-      } catch (error) {
-        setMessageType(
-          'error'
-        );
-
-        setMessage(
-          `✕ ${
-            error.message ||
-            'Failed to remove phase from project.'
-          }`
-        );
-      } finally {
-        setRemovingAssignmentPhaseId(
-          ''
+      if (!response.ok) {
+        throw new Error(
+          result.error ||
+          'Failed to remove phase from project.'
         );
       }
-    };
+
+      await loadProjectAssignments(
+        selectedProjectCode
+      );
+
+      setMessageType('success');
+      setMessage(
+        `✓ ${phase.description} removed from Project ${selectedProjectCode}.`
+      );
+    } catch (error) {
+      setMessageType('error');
+
+      setMessage(
+        `✕ ${
+          error.message ||
+          'Failed to remove phase from project.'
+        }`
+      );
+    } finally {
+      setRemovingAssignmentPhaseId('');
+    }
+  };
 
   /* =========================================================
      UI
@@ -1053,22 +740,15 @@ function ProjectPhasesPage() {
 
               <input
                 type="text"
-                value={
-                  newPhaseId
-                }
+                value={newPhaseId}
                 maxLength="2"
                 placeholder="e.g. 03"
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   setNewPhaseId(
-                    event.target.value
-                      .toUpperCase()
+                    event.target.value.toUpperCase()
                   )
                 }
-                disabled={
-                  creatingMasterPhase
-                }
+                disabled={creatingMasterPhase}
               />
             </label>
 
@@ -1077,20 +757,14 @@ function ProjectPhasesPage() {
 
               <input
                 type="text"
-                value={
-                  newPhaseDescription
-                }
+                value={newPhaseDescription}
                 placeholder="e.g. Development"
-                onChange={(
-                  event
-                ) =>
+                onChange={(event) =>
                   setNewPhaseDescription(
                     event.target.value
                   )
                 }
-                disabled={
-                  creatingMasterPhase
-                }
+                disabled={creatingMasterPhase}
               />
             </label>
           </div>
@@ -1098,9 +772,7 @@ function ProjectPhasesPage() {
           <div className="phase-form-actions">
             <button
               type="button"
-              onClick={
-                handleCreateMasterPhase
-              }
+              onClick={handleCreateMasterPhase}
               disabled={
                 creatingMasterPhase ||
                 !newPhaseId.trim() ||
@@ -1117,21 +789,10 @@ function ProjectPhasesPage() {
             <table className="phase-table">
               <thead>
                 <tr>
-                  <th>
-                    No.
-                  </th>
-
-                  <th>
-                    Phase ID
-                  </th>
-
-                  <th>
-                    Description
-                  </th>
-
-                  <th>
-                    Action
-                  </th>
+                  <th>No.</th>
+                  <th>Phase ID</th>
+                  <th>Description</th>
+                  <th>Action</th>
                 </tr>
               </thead>
 
@@ -1142,8 +803,7 @@ function ProjectPhasesPage() {
                       ⏳ Loading Phase Master...
                     </td>
                   </tr>
-                ) : projectPhaseMaster.length ===
-                  0 ? (
+                ) : projectPhaseMaster.length === 0 ? (
                   <tr>
                     <td colSpan="4">
                       No phases are defined in the
@@ -1152,53 +812,32 @@ function ProjectPhasesPage() {
                   </tr>
                 ) : (
                   projectPhaseMaster.map(
-                    (
-                      phase,
-                      index
-                    ) => {
+                    (phase, index) => {
                       const isSaving =
-                        String(
-                          savingMasterPhaseId
-                        ) ===
-                        String(
-                          phase.phaseid
-                        );
+                        String(savingMasterPhaseId) ===
+                        String(phase.phaseid);
 
                       const isDeleting =
-                        String(
-                          deletingMasterPhaseId
-                        ) ===
-                        String(
-                          phase.phaseid
-                        );
+                        String(deletingMasterPhaseId) ===
+                        String(phase.phaseid);
 
                       return (
-                        <tr
-                          key={
-                            phase.phaseid
-                          }
-                        >
+                        <tr key={phase.phaseid}>
                           <td className="phase-number">
                             {index + 1}
                           </td>
 
                           <td>
                             <strong>
-                              {
-                                phase.phaseid
-                              }
+                              {phase.phaseid}
                             </strong>
                           </td>
 
                           <td>
                             <input
                               type="text"
-                              value={
-                                phase.description
-                              }
-                              onChange={(
-                                event
-                              ) =>
+                              value={phase.description}
+                              onChange={(event) =>
                                 handleMasterDescriptionChange(
                                   phase.phaseid,
                                   event.target.value
@@ -1214,12 +853,9 @@ function ProjectPhasesPage() {
                           <td>
                             <div
                               style={{
-                                display:
-                                  'flex',
-                                gap:
-                                  '8px',
-                                flexWrap:
-                                  'wrap'
+                                display: 'flex',
+                                gap: '8px',
+                                flexWrap: 'wrap'
                               }}
                             >
                               <button
@@ -1234,8 +870,8 @@ function ProjectPhasesPage() {
                                   isDeleting ||
                                   Boolean(
                                     savingMasterPhaseId &&
-                                      savingMasterPhaseId !==
-                                        phase.phaseid
+                                    savingMasterPhaseId !==
+                                      phase.phaseid
                                   ) ||
                                   Boolean(
                                     deletingMasterPhaseId
@@ -1263,8 +899,8 @@ function ProjectPhasesPage() {
                                   ) ||
                                   Boolean(
                                     deletingMasterPhaseId &&
-                                      deletingMasterPhaseId !==
-                                        phase.phaseid
+                                    deletingMasterPhaseId !==
+                                      phase.phaseid
                                   )
                                 }
                               >
@@ -1309,19 +945,13 @@ function ProjectPhasesPage() {
               Select Project *
 
               <select
-                value={
-                  selectedProjectCode
-                }
-                onChange={
-                  handleProjectChange
-                }
+                value={selectedProjectCode}
+                onChange={handleProjectChange}
                 disabled={
                   loading ||
                   assignmentLoading ||
                   addingAssignment ||
-                  Boolean(
-                    removingAssignmentPhaseId
-                  )
+                  Boolean(removingAssignmentPhaseId)
                 }
               >
                 <option value="">
@@ -1330,28 +960,16 @@ function ProjectPhasesPage() {
                     : 'Select a project'}
                 </option>
 
-                {uniqueProjects.map(
-                  (project) => (
-                    <option
-                      key={
-                        project.projectcode
-                      }
-                      value={
-                        project.projectcode
-                      }
-                    >
-                      {
-                        project.projectcode
-                      }
-
-                      {' - '}
-
-                      {
-                        project.projectname
-                      }
-                    </option>
-                  )
-                )}
+                {uniqueProjects.map((project) => (
+                  <option
+                    key={project.projectcode}
+                    value={project.projectcode}
+                  >
+                    {project.projectcode}
+                    {' - '}
+                    {project.projectname}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -1359,34 +977,21 @@ function ProjectPhasesPage() {
           {selectedProject && (
             <div className="project-summary">
               <div className="summary-item">
-                <span>
-                  Project Code
-                </span>
-
+                <span>Project Code</span>
                 <strong>
-                  {
-                    selectedProject.projectcode
-                  }
+                  {selectedProject.projectcode}
                 </strong>
               </div>
 
               <div className="summary-item">
-                <span>
-                  Project Name
-                </span>
-
+                <span>Project Name</span>
                 <strong>
-                  {
-                    selectedProject.projectname
-                  }
+                  {selectedProject.projectname}
                 </strong>
               </div>
 
               <div className="summary-item">
-                <span>
-                  Active Version
-                </span>
-
+                <span>Active Version</span>
                 <strong>
                   {selectedProject.versionid
                     ? `V${selectedProject.versionid}`
@@ -1395,41 +1000,26 @@ function ProjectPhasesPage() {
               </div>
 
               <div className="summary-item">
-                <span>
-                  Assigned Phases
-                </span>
-
+                <span>Assigned Phases</span>
                 <strong>
-                  {
-                    assignedPhases.length
-                  }
+                  {assignedPhases.length}
                 </strong>
               </div>
 
               <div className="summary-item">
-                <span>
-                  Business Partner
-                </span>
-
+                <span>Business Partner</span>
                 <strong>
-                  {selectedProject
-                    .partnerdescription ||
-                    selectedProject
-                      .partnerid ||
+                  {selectedProject.partnerdescription ||
+                    selectedProject.partnerid ||
                     '-'}
                 </strong>
               </div>
 
               <div className="summary-item">
-                <span>
-                  Project Type
-                </span>
-
+                <span>Project Type</span>
                 <strong>
-                  {selectedProject
-                    .projecttypedescription ||
-                    selectedProject
-                      .projecttype ||
+                  {selectedProject.projecttypedescription ||
+                    selectedProject.projecttype ||
                     '-'}
                 </strong>
               </div>
@@ -1443,8 +1033,7 @@ function ProjectPhasesPage() {
           {selectedProjectCode && (
             <div
               style={{
-                marginTop:
-                  '20px'
+                marginTop: '20px'
               }}
             >
               <div className="section-heading-row">
@@ -1459,16 +1048,12 @@ function ProjectPhasesPage() {
                   </p>
                 </div>
 
-                {availablePhases.length >
-                  0 && (
+                {availablePhases.length > 0 && (
                   <div
                     style={{
-                      display:
-                        'flex',
-                      gap:
-                        '8px',
-                      flexWrap:
-                        'wrap'
+                      display: 'flex',
+                      gap: '8px',
+                      flexWrap: 'wrap'
                     }}
                   >
                     <button
@@ -1493,8 +1078,7 @@ function ProjectPhasesPage() {
                       }
                       disabled={
                         addingAssignment ||
-                        selectedPhaseIds.length ===
-                          0
+                        selectedPhaseIds.length === 0
                       }
                     >
                       Clear Selection
@@ -1507,8 +1091,7 @@ function ProjectPhasesPage() {
                 <p>
                   ⏳ Loading available phases...
                 </p>
-              ) : availablePhases.length ===
-                0 ? (
+              ) : availablePhases.length === 0 ? (
                 <p>
                   ✓ All Phase Master entries are
                   already assigned to this project.
@@ -1516,92 +1099,67 @@ function ProjectPhasesPage() {
               ) : (
                 <div
                   style={{
-                    display:
-                      'grid',
+                    display: 'grid',
                     gridTemplateColumns:
                       'repeat(auto-fit, minmax(220px, 1fr))',
-                    gap:
-                      '10px',
-                    marginTop:
-                      '12px'
+                    gap: '10px',
+                    marginTop: '12px'
                   }}
                 >
-                  {availablePhases.map(
-                    (phase) => {
-                      const checked =
-                        selectedPhaseIds.includes(
-                          phase.phaseid
-                        );
-
-                      return (
-                        <label
-                          key={
-                            phase.phaseid
-                          }
-                          style={{
-                            display:
-                              'flex',
-                            alignItems:
-                              'center',
-                            gap:
-                              '10px',
-                            padding:
-                              '12px',
-                            border:
-                              '1px solid rgba(0, 0, 0, 0.12)',
-                            borderRadius:
-                              '8px',
-                            cursor:
-                              addingAssignment
-                                ? 'not-allowed'
-                                : 'pointer'
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={
-                              checked
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              handlePhaseSelectionChange(
-                                phase.phaseid,
-                                event.target.checked
-                              )
-                            }
-                            disabled={
-                              addingAssignment
-                            }
-                          />
-
-                          <span>
-                            <strong>
-                              {
-                                phase.phaseid
-                              }
-                            </strong>
-
-                            {' - '}
-
-                            {
-                              phase.description
-                            }
-                          </span>
-                        </label>
+                  {availablePhases.map((phase) => {
+                    const checked =
+                      selectedPhaseIds.includes(
+                        phase.phaseid
                       );
-                    }
-                  )}
+
+                    return (
+                      <label
+                        key={phase.phaseid}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '12px',
+                          border:
+                            '1px solid rgba(0, 0, 0, 0.12)',
+                          borderRadius: '8px',
+                          cursor: addingAssignment
+                            ? 'not-allowed'
+                            : 'pointer'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) =>
+                            handlePhaseSelectionChange(
+                              phase.phaseid,
+                              event.target.checked
+                            )
+                          }
+                          disabled={addingAssignment}
+                        />
+
+                        <span>
+                          <strong>
+                            {phase.phaseid}
+                          </strong>
+
+                          {' - '}
+
+                          {phase.description}
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               )}
 
-              {availablePhases.length >
-                0 && (
+              {availablePhases.length > 0 && (
                 <div
                   className="phase-form-actions"
                   style={{
-                    marginTop:
-                      '16px'
+                    marginTop: '16px'
                   }}
                 >
                   <button
@@ -1612,8 +1170,7 @@ function ProjectPhasesPage() {
                     disabled={
                       addingAssignment ||
                       assignmentLoading ||
-                      selectedPhaseIds.length ===
-                        0
+                      selectedPhaseIds.length === 0
                     }
                   >
                     {addingAssignment
@@ -1633,28 +1190,16 @@ function ProjectPhasesPage() {
             <div
               className="table-wrap phase-table-wrap"
               style={{
-                marginTop:
-                  '24px'
+                marginTop: '24px'
               }}
             >
               <table className="phase-table">
                 <thead>
                   <tr>
-                    <th>
-                      Sequence
-                    </th>
-
-                    <th>
-                      Phase ID
-                    </th>
-
-                    <th>
-                      Project Phase
-                    </th>
-
-                    <th>
-                      Action
-                    </th>
+                    <th>Sequence</th>
+                    <th>Phase ID</th>
+                    <th>Project Phase</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
 
@@ -1662,12 +1207,10 @@ function ProjectPhasesPage() {
                   {assignmentLoading ? (
                     <tr>
                       <td colSpan="4">
-                        ⏳ Loading assigned
-                        phases...
+                        ⏳ Loading assigned phases...
                       </td>
                     </tr>
-                  ) : assignedPhases.length ===
-                    0 ? (
+                  ) : assignedPhases.length === 0 ? (
                     <tr>
                       <td colSpan="4">
                         No phases are currently
@@ -1676,10 +1219,7 @@ function ProjectPhasesPage() {
                     </tr>
                   ) : (
                     assignedPhases.map(
-                      (
-                        phase,
-                        index
-                      ) => {
+                      (phase, index) => {
                         const isRemoving =
                           String(
                             removingAssignmentPhaseId
@@ -1690,9 +1230,7 @@ function ProjectPhasesPage() {
 
                         return (
                           <tr
-                            key={
-                              phase.phaseid
-                            }
+                            key={phase.phaseid}
                           >
                             <td className="phase-number">
                               {phase.sequenceno ||
@@ -1701,16 +1239,12 @@ function ProjectPhasesPage() {
 
                             <td>
                               <strong>
-                                {
-                                  phase.phaseid
-                                }
+                                {phase.phaseid}
                               </strong>
                             </td>
 
                             <td className="phase-name">
-                              {
-                                phase.description
-                              }
+                              {phase.description}
                             </td>
 
                             <td>
@@ -1727,8 +1261,8 @@ function ProjectPhasesPage() {
                                   addingAssignment ||
                                   Boolean(
                                     removingAssignmentPhaseId &&
-                                      removingAssignmentPhaseId !==
-                                        phase.phaseid
+                                    removingAssignmentPhaseId !==
+                                      phase.phaseid
                                   )
                                 }
                               >
@@ -1755,8 +1289,7 @@ function ProjectPhasesPage() {
         <div
           className="phase-section"
           style={{
-            marginTop:
-              '20px'
+            marginTop: '20px'
           }}
         >
           <div className="section-heading-row">
@@ -1778,40 +1311,28 @@ function ProjectPhasesPage() {
 
           <div className="project-summary">
             <div className="summary-item">
-              <span>
-                1
-              </span>
-
+              <span>1</span>
               <strong>
                 Phase Master
               </strong>
             </div>
 
             <div className="summary-item">
-              <span>
-                2
-              </span>
-
+              <span>2</span>
               <strong>
                 Project Phase Assignment
               </strong>
             </div>
 
             <div className="summary-item">
-              <span>
-                3
-              </span>
-
+              <span>3</span>
               <strong>
                 Project Versions
               </strong>
             </div>
 
             <div className="summary-item">
-              <span>
-                4
-              </span>
-
+              <span>4</span>
               <strong>
                 Project Plan
               </strong>

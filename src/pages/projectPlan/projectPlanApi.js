@@ -26,6 +26,93 @@ const readJsonResponse = async (
 };
 
 /* =========================================================
+   CSRF TOKEN HELPER
+========================================================= */
+
+const fetchCsrfToken = async () => {
+  const response =
+    await fetch(
+      '/api/auth/csrf-token',
+      {
+        method: 'GET',
+
+        credentials: 'same-origin',
+
+        cache: 'no-store'
+      }
+    );
+
+  const result =
+    await readJsonResponse(
+      response,
+      'Failed to retrieve CSRF token.'
+    );
+
+  if (
+    result.success !== true ||
+    typeof result.csrfToken !== 'string' ||
+    !result.csrfToken
+  ) {
+    throw new Error(
+      'The server did not return a valid CSRF token.'
+    );
+  }
+
+  return result.csrfToken;
+};
+
+/* =========================================================
+   AUTHENTICATED POST HELPER
+
+   - Retrieves a session-bound CSRF token.
+   - Sends the authentication cookie.
+   - Adds the required X-CSRF-Token header.
+   - Preserves existing API error handling.
+========================================================= */
+
+const authenticatedPost = async (
+  url,
+  payload,
+  fallbackMessage
+) => {
+  const csrfToken =
+    await fetchCsrfToken();
+
+  const headers = {
+    'X-CSRF-Token': csrfToken
+  };
+
+  const options = {
+    method: 'POST',
+
+    credentials: 'same-origin',
+
+    headers
+  };
+
+  if (payload !== undefined) {
+    headers['Content-Type'] =
+      'application/json';
+
+    options.body =
+      JSON.stringify(
+        payload
+      );
+  }
+
+  const response =
+    await fetch(
+      url,
+      options
+    );
+
+  return await readJsonResponse(
+    response,
+    fallbackMessage
+  );
+};
+
+/* =========================================================
    MASTER DATA
 ========================================================= */
 
@@ -232,27 +319,11 @@ export const saveProjectPlan =
   async (
     payload
   ) => {
-    const response =
-      await fetch(
-        '/api/project-plans',
-        {
-          method:
-            'POST',
+    return await authenticatedPost(
+      '/api/project-plans',
 
-          headers: {
-            'Content-Type':
-              'application/json'
-          },
+      payload,
 
-          body:
-            JSON.stringify(
-              payload
-            )
-        }
-      );
-
-    return await readJsonResponse(
-      response,
       'Failed to save Project Plan.'
     );
   };
@@ -266,30 +337,16 @@ export const createProjectVersion =
     projectCode,
     versionNote
   ) => {
-    const response =
-      await fetch(
-        `/api/project-versions/${encodeURIComponent(
-          projectCode
-        )}`,
-        {
-          method:
-            'POST',
+    return await authenticatedPost(
+      `/api/project-versions/${encodeURIComponent(
+        projectCode
+      )}`,
 
-          headers: {
-            'Content-Type':
-              'application/json'
-          },
+      {
+        versionnote:
+          versionNote
+      },
 
-          body:
-            JSON.stringify({
-              versionnote:
-                versionNote
-            })
-        }
-      );
-
-    return await readJsonResponse(
-      response,
       'Failed to create Project Version.'
     );
   };
@@ -303,21 +360,15 @@ export const activateProjectVersion =
     projectCode,
     versionId
   ) => {
-    const response =
-      await fetch(
-        `/api/project-versions/${encodeURIComponent(
-          projectCode
-        )}/${encodeURIComponent(
-          versionId
-        )}/activate`,
-        {
-          method:
-            'POST'
-        }
-      );
+    return await authenticatedPost(
+      `/api/project-versions/${encodeURIComponent(
+        projectCode
+      )}/${encodeURIComponent(
+        versionId
+      )}/activate`,
 
-    return await readJsonResponse(
-      response,
+      undefined,
+
       'Failed to activate Project Version.'
     );
   };

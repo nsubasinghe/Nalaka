@@ -12,6 +12,11 @@ import {
   getActiveProjectVersion
 } from '../services/projectVersion.service.js';
 
+import {
+  requireProjectRead,
+  requireProjectWrite
+} from '../middleware/projectAuthorization.middleware.js';
+
 const router =
   express.Router();
 
@@ -21,6 +26,9 @@ const router =
 
 router.get(
   '/:projectcode/:phaseid',
+
+  requireProjectRead,
+
   async (req, res) => {
     try {
       if (
@@ -136,6 +144,9 @@ router.get(
 
 router.put(
   '/:projectcode/:phaseid',
+
+  requireProjectWrite,
+
   async (req, res) => {
     let client =
       null;
