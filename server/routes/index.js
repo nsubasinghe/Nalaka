@@ -69,6 +69,9 @@ import projectsRouter
 import resourcesRouter
   from './resources.routes.js';
 
+import projectFIRouter
+  from './projectFI.routes.js';
+
 /* =========================================================
    PROJECT MANAGEMENT ROUTES
 ========================================================= */
@@ -126,23 +129,26 @@ router.use(
    GLOBAL SECURITY BOUNDARY
 ========================================================= */
 
-// Every endpoint below requires authentication.
-
 router.use(
   requireAuth
 );
 
-// Temporary Administrator-only restriction.
-//
-// Keep this enabled until all project routes,
-// collection endpoints, and master data
-// permissions are secured.
+/*
+  TEMPORARY ADMINISTRATOR-ONLY RESTRICTION
+
+  Keep this enabled until all routes,
+  pages and role permissions are fully
+  reviewed and tested.
+*/
 
 router.use(
   requireAdmin
 );
 
-// Protect state-changing requests with CSRF.
+/*
+  Protect all state-changing requests
+  below this point with CSRF validation.
+*/
 
 router.use(
   requireCsrf
@@ -206,32 +212,29 @@ router.use(
   resourcesRouter
 );
 
+router.use(
+  '/project-fi',
+  projectFIRouter
+);
+
 /* =========================================================
    PROJECT PHASE ASSIGNMENT AUTHORIZATION
 ========================================================= */
-
-// Read assigned project phases.
 
 router.get(
   '/project-phase-assignments/:projectcode',
   requireProjectRead
 );
 
-// Assign phases.
-
 router.post(
   '/project-phase-assignments/:projectcode',
   requireProjectWrite
 );
 
-// Update phase sequence.
-
 router.put(
   '/project-phase-assignments/:projectcode/:phaseid',
   requireProjectWrite
 );
-
-// Remove phase assignment.
 
 router.delete(
   '/project-phase-assignments/:projectcode/:phaseid',
@@ -251,40 +254,20 @@ router.use(
    PROJECT VERSION PHASE AUTHORIZATION
 ========================================================= */
 
-// Read phases in the active project version.
-//
-// GET /api/project-version-phases/:projectcode
-
 router.get(
   '/project-version-phases/:projectcode',
   requireProjectRead
 );
-
-// Add a phase to the active project version.
-//
-// POST /api/project-version-phases/:projectcode
 
 router.post(
   '/project-version-phases/:projectcode',
   requireProjectWrite
 );
 
-// Update an active version phase.
-//
-// PUT /api/project-version-phases/:projectcode/:phaseid
-
 router.put(
   '/project-version-phases/:projectcode/:phaseid',
   requireProjectWrite
 );
-
-// Delete an active version phase.
-//
-// WARNING:
-// The underlying handler also deletes
-// associated resource planning data.
-//
-// DELETE /api/project-version-phases/:projectcode/:phaseid
 
 router.delete(
   '/project-version-phases/:projectcode/:phaseid',
@@ -304,35 +287,25 @@ router.use(
    PROJECT VERSION AUTHORIZATION
 ========================================================= */
 
-// Read the active project version.
-
 router.get(
   '/project-versions/:projectcode/active',
   requireProjectRead
 );
-
-// Read inactive project versions.
 
 router.get(
   '/project-versions/:projectcode/inactive',
   requireProjectRead
 );
 
-// Read all project versions.
-
 router.get(
   '/project-versions/:projectcode',
   requireProjectRead
 );
 
-// Activate an existing version.
-
 router.post(
   '/project-versions/:projectcode/:versionid/activate',
   requireProjectWrite
 );
-
-// Create a new project version.
 
 router.post(
   '/project-versions/:projectcode',
@@ -361,21 +334,15 @@ router.use(
    PROJECT PLANNING AUTHORIZATION
 ========================================================= */
 
-// Save a project plan.
-
 router.post(
   '/project-plans',
   requireProjectWrite
 );
 
-// Read active project plan.
-
 router.get(
   '/active-project-plan/:projectcode/:phaseid',
   requireProjectRead
 );
-
-// Read a specific project plan version.
 
 router.get(
   '/project-plans/:projectcode/:versionid/:phaseid',

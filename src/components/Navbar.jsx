@@ -1,17 +1,27 @@
-import { NavLink } from 'react-router-dom';
+import {
+  NavLink
+} from 'react-router-dom';
 
 function Navbar({
   user,
   onLogout,
   loggingOut = false
 }) {
-  const getNavClass = ({ isActive }) =>
-    isActive
-      ? 'sidebar-link active'
-      : 'sidebar-link';
+  const getNavClass =
+    ({
+      isActive
+    }) =>
+      isActive
+        ? 'sidebar-link active'
+        : 'sidebar-link';
 
   return (
     <aside className="sidebar">
+
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
       <div className="sidebar-header">
         <div className="sidebar-brand">
           PPBMA
@@ -24,10 +34,19 @@ function Navbar({
         </div>
       </div>
 
+      {/* =====================================================
+          NAVIGATION
+      ===================================================== */}
+
       <nav className="sidebar-navigation">
+
+        {/* DASHBOARD */}
+
         <NavLink
           to="/dashboard"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ▦
@@ -38,9 +57,13 @@ function Navbar({
           </span>
         </NavLink>
 
+        {/* PROJECT MASTER */}
+
         <NavLink
           to="/projects"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ◫
@@ -51,9 +74,13 @@ function Navbar({
           </span>
         </NavLink>
 
+        {/* BUSINESS PARTNER */}
+
         <NavLink
           to="/business-partners"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ◉
@@ -64,9 +91,13 @@ function Navbar({
           </span>
         </NavLink>
 
+        {/* PROJECT PHASES */}
+
         <NavLink
           to="/project-phases"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ◇
@@ -77,35 +108,47 @@ function Navbar({
           </span>
         </NavLink>
 
+        {/* PROJECT PHASE ASSIGNMENT */}
+
+        <NavLink
+          to="/project-phase-assignment"
+          className={
+            getNavClass
+          }
+        >
+          <span className="sidebar-icon">
+            ⇄
+          </span>
+
+          <span>
+            Project Phase Assignment
+          </span>
+        </NavLink>
+
+        {/* RESOURCE + FINANCIAL MASTER */}
+
         <NavLink
           to="/resource-master"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ♙
           </span>
 
           <span>
-            Resource Master
+            Resource & Financials
           </span>
         </NavLink>
 
-        <NavLink
-          to="/resource-allocation"
-          className={getNavClass}
-        >
-          <span className="sidebar-icon">
-            ▤
-          </span>
-
-          <span>
-            Resource Allocation
-          </span>
-        </NavLink>
+        {/* PROJECT PLAN */}
 
         <NavLink
           to="/project-plan"
-          className={getNavClass}
+          className={
+            getNavClass
+          }
         >
           <span className="sidebar-icon">
             ▥
@@ -115,27 +158,21 @@ function Navbar({
             Project Plan
           </span>
         </NavLink>
-
-        <NavLink
-          to="/project-fi"
-          className={getNavClass}
-        >
-          <span className="sidebar-icon">
-            $
-          </span>
-
-          <span>
-            Project Financials
-          </span>
-        </NavLink>
       </nav>
 
+      {/* =====================================================
+          FOOTER
+      ===================================================== */}
+
       <div className="sidebar-footer">
+
         {user && (
           <div
             style={{
-              marginBottom: '12px',
-              overflowWrap: 'anywhere'
+              marginBottom:
+                '12px',
+              overflowWrap:
+                'anywhere'
             }}
           >
             <div className="sidebar-footer-title">
@@ -150,30 +187,47 @@ function Navbar({
 
         <button
           type="button"
-          onClick={onLogout}
+          onClick={
+            onLogout
+          }
           disabled={
             loggingOut ||
             !onLogout
           }
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            width: '100%',
-            padding: '11px 14px',
-            marginBottom: '14px',
-            border: 'none',
-            borderRadius: '8px',
-            background: '#ffffff',
-            color: '#174679',
-            fontWeight: 600,
-            cursor: loggingOut
-              ? 'wait'
-              : 'pointer'
+            display:
+              'flex',
+            alignItems:
+              'center',
+            justifyContent:
+              'center',
+            gap:
+              '8px',
+            width:
+              '100%',
+            padding:
+              '11px 14px',
+            marginBottom:
+              '14px',
+            border:
+              'none',
+            borderRadius:
+              '8px',
+            background:
+              '#ffffff',
+            color:
+              '#174679',
+            fontWeight:
+              600,
+            cursor:
+              loggingOut
+                ? 'wait'
+                : 'pointer'
           }}
         >
-          <span aria-hidden="true">
+          <span
+            aria-hidden="true"
+          >
             ↪
           </span>
 

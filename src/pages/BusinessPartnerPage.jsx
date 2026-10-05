@@ -1,5 +1,16 @@
-import { useEffect, useState } from 'react';
-import { authenticatedFetch } from '../api/authenticatedFetch.js';
+import {
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
+
+import {
+  authenticatedFetch
+} from '../api/authenticatedFetch.js';
+
+/* =========================================================
+   INITIAL FORM
+========================================================= */
 
 const initialForm = {
   partnerid: '',
@@ -7,376 +18,1278 @@ const initialForm = {
 };
 
 function BusinessPartnerPage() {
-  const [form, setForm] = useState(initialForm);
-  const [businessPartners, setBusinessPartners] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [listLoading, setListLoading] = useState(true);
-  const [editingPartnerId, setEditingPartnerId] = useState('');
-  const [duplicatePartnerId, setDuplicatePartnerId] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState('');
+  /* =========================================================
+     DATA
+  ========================================================= */
 
-  const loadBusinessPartners = async () => {
-    setListLoading(true);
+  const [
+    businessPartners,
+    setBusinessPartners
+  ] = useState([]);
 
-    try {
-      const response = await fetch('/api/business-partners');
-      const result = await response.json();
+  /* =========================================================
+     FORM
+  ========================================================= */
 
-      if (!response.ok) {
-        throw new Error(
-          result.error || 'Failed to load Business Partners.'
-        );
-      }
+  const [
+    form,
+    setForm
+  ] = useState(initialForm);
 
-      setBusinessPartners(result.businessPartners || []);
-    } catch (error) {
-      setMessageType('error');
-      setMessage(
-        `✕ ${error.message || 'Failed to load Business Partners.'}`
-      );
-    } finally {
-      setListLoading(false);
-    }
+  const [
+    originalForm,
+    setOriginalForm
+  ] = useState(initialForm);
+
+  const [
+    mode,
+    setMode
+  ] = useState('view');
+
+  const [
+    loading,
+    setLoading
+  ] = useState(false);
+
+  const [
+    listLoading,
+    setListLoading
+  ] = useState(true);
+
+  /* =========================================================
+     ALERT
+  ========================================================= */
+
+  const [
+    alert,
+    setAlert
+  ] = useState({
+    open: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
+  /* =========================================================
+     CONFIRMATION
+  ========================================================= */
+
+  const [
+    confirmation,
+    setConfirmation
+  ] = useState({
+    open: false,
+    type: ''
+  });
+
+  /* =========================================================
+     DERIVED STATE
+  ========================================================= */
+
+  const isCreateMode =
+    mode === 'create';
+
+  const isEditMode =
+    mode === 'edit';
+
+  const hasUnsavedChanges =
+    useMemo(
+      () =>
+        JSON.stringify(form) !==
+        JSON.stringify(originalForm),
+      [
+        form,
+        originalForm
+      ]
+    );
+
+  /* =========================================================
+     ALERT HELPERS
+  ========================================================= */
+
+  const showAlert = (
+    type,
+    title,
+    message
+  ) => {
+    setAlert({
+      open: true,
+      type,
+      title,
+      message
+    });
   };
+
+  const closeAlert = () => {
+    setAlert({
+      open: false,
+      type: 'success',
+      title: '',
+      message: ''
+    });
+  };
+
+  /* =========================================================
+     LOAD BUSINESS PARTNERS
+  ========================================================= */
+
+  const loadBusinessPartners =
+    async () => {
+      setListLoading(true);
+
+      try {
+        const response =
+          await fetch(
+            '/api/business-partners'
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              'Failed to load Business Partners.'
+          );
+        }
+
+        const partners =
+          result.businessPartners || [];
+
+        setBusinessPartners(
+          partners
+        );
+
+        return partners;
+
+      } catch (error) {
+        showAlert(
+          'error',
+          'Unable to Load Business Partners',
+          error.message ||
+            'Failed to load Business Partners.'
+        );
+
+        return [];
+
+      } finally {
+        setListLoading(false);
+      }
+    };
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
 
   useEffect(() => {
     loadBusinessPartners();
   }, []);
 
-  const handlePartnerIdChange = (event) => {
-    const value = event.target.value
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '');
+  /* =========================================================
+     ESCAPE KEY
+  ========================================================= */
 
-    setForm((prev) => ({
-      ...prev,
-      partnerid: value
-    }));
+  useEffect(() => {
+    if (
+      !alert.open &&
+      !confirmation.open
+    ) {
+      return;
+    }
 
-    const exists = businessPartners.some(
-      (partner) =>
-        partner.partnerid.toUpperCase() === value &&
-        partner.partnerid !== editingPartnerId
+    const handleKeyDown =
+      (event) => {
+        if (
+          event.key !== 'Escape'
+        ) {
+          return;
+        }
+
+        if (alert.open) {
+          closeAlert();
+          return;
+        }
+
+        setConfirmation({
+          open: false,
+          type: ''
+        });
+      };
+
+    window.addEventListener(
+      'keydown',
+      handleKeyDown
     );
 
-    setDuplicatePartnerId(exists);
-
-    if (exists) {
-      setMessageType('error');
-      setMessage('✕ Partner ID already exists.');
-    } else {
-      setMessage('');
-      setMessageType('');
-    }
-  };
-
-  const handleDescriptionChange = (event) => {
-    setForm((prev) => ({
-      ...prev,
-      description: event.target.value
-    }));
-  };
-
-  const resetForm = () => {
-    setForm(initialForm);
-    setEditingPartnerId('');
-    setDuplicatePartnerId(false);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    setMessage('');
-    setMessageType('');
-
-    const partnerid = form.partnerid.trim();
-    const description = form.description.trim();
-
-    if (!partnerid) {
-      setMessageType('error');
-      setMessage('✕ Partner ID is required.');
-      return;
-    }
-
-    if (duplicatePartnerId && !editingPartnerId) {
-      setMessageType('error');
-      setMessage('✕ Partner ID already exists.');
-      return;
-    }
-
-    if (!description) {
-      setMessageType('error');
-      setMessage('✕ Description is required.');
-      return;
-    }
-
-    if (!/^[A-Z0-9]{1,10}$/.test(partnerid)) {
-      setMessageType('error');
-      setMessage(
-        '✕ Partner ID must contain only letters and numbers and cannot exceed 10 characters.'
+    return () => {
+      window.removeEventListener(
+        'keydown',
+        handleKeyDown
       );
-      return;
-    }
+    };
+  }, [
+    alert.open,
+    confirmation.open
+  ]);
 
-    if (description.length > 50) {
-      setMessageType('error');
-      setMessage('✕ Description cannot exceed 50 characters.');
-      return;
-    }
+  /* =========================================================
+     LOAD SELECTED PARTNER
+  ========================================================= */
 
-    setLoading(true);
+  const loadPartner =
+    (partnerId) => {
+      const partner =
+        businessPartners.find(
+          (item) =>
+            String(
+              item.partnerid
+            ) ===
+            String(
+              partnerId
+            )
+        );
 
-    try {
-      const isEditing = Boolean(editingPartnerId);
+      if (!partner) {
+        setForm({
+          ...initialForm
+        });
 
-      const url = isEditing
-        ? `/api/business-partners/${editingPartnerId}`
-        : '/api/business-partners';
+        setOriginalForm({
+          ...initialForm
+        });
 
-      /*
-       * authenticatedFetch automatically:
-       * 1. Retrieves a session-bound CSRF token.
-       * 2. Adds the X-CSRF-Token header.
-       * 3. Includes the current browser session.
-       */
+        setMode('view');
 
-      const response = await authenticatedFetch(url, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          partnerid,
-          description
+        return;
+      }
+
+      const nextForm = {
+        partnerid:
+          partner.partnerid || '',
+
+        description:
+          partner.description || ''
+      };
+
+      setForm(
+        nextForm
+      );
+
+      setOriginalForm(
+        nextForm
+      );
+
+      setMode('edit');
+    };
+
+  /* =========================================================
+     PARTNER DROPDOWN
+  ========================================================= */
+
+  const handlePartnerSelection =
+    (event) => {
+      const partnerId =
+        event.target.value;
+
+      if (
+        partnerId ===
+        form.partnerid
+      ) {
+        return;
+      }
+
+      if (hasUnsavedChanges) {
+        setConfirmation({
+          open: true,
+          type: `switch:${partnerId}`
+        });
+
+        return;
+      }
+
+      if (!partnerId) {
+        resetToViewMode();
+        return;
+      }
+
+      loadPartner(
+        partnerId
+      );
+    };
+
+  /* =========================================================
+     NEW PARTNER ID
+  ========================================================= */
+
+  const handlePartnerIdChange =
+    (event) => {
+      if (!isCreateMode) {
+        return;
+      }
+
+      const value =
+        event.target.value
+          .toUpperCase()
+          .replace(
+            /[^A-Z0-9]/g,
+            ''
+          )
+          .slice(
+            0,
+            10
+          );
+
+      setForm(
+        (previous) => ({
+          ...previous,
+          partnerid:
+            value
         })
+      );
+    };
+
+  /* =========================================================
+     DESCRIPTION
+  ========================================================= */
+
+  const handleDescriptionChange =
+    (event) => {
+      setForm(
+        (previous) => ({
+          ...previous,
+          description:
+            event.target.value
+        })
+      );
+    };
+
+  /* =========================================================
+     RESET
+  ========================================================= */
+
+  const resetToViewMode =
+    () => {
+      setForm({
+        ...initialForm
       });
 
-      const result = await response.json();
+      setOriginalForm({
+        ...initialForm
+      });
 
-      if (!response.ok) {
-        throw new Error(
-          result.error ||
-            (isEditing
-              ? 'Failed to update Business Partner.'
-              : 'Failed to save Business Partner.')
+      setMode('view');
+
+      setConfirmation({
+        open: false,
+        type: ''
+      });
+    };
+
+  const startNewPartner =
+    () => {
+      setForm({
+        ...initialForm
+      });
+
+      setOriginalForm({
+        ...initialForm
+      });
+
+      setMode('create');
+
+      setConfirmation({
+        open: false,
+        type: ''
+      });
+    };
+
+  /* =========================================================
+     VALIDATE
+  ========================================================= */
+
+  const validateForm =
+    () => {
+      const partnerid =
+        form.partnerid.trim();
+
+      const description =
+        form.description.trim();
+
+      if (!partnerid) {
+        showAlert(
+          'error',
+          'Partner ID Required',
+          'Partner ID is required.'
         );
+
+        return false;
       }
 
-      setMessageType('success');
-      setMessage(
-        isEditing
-          ? '✓ Business Partner updated successfully!'
-          : '✓ Business Partner saved successfully!'
-      );
+      if (
+        !/^[A-Z0-9]{1,10}$/.test(
+          partnerid
+        )
+      ) {
+        showAlert(
+          'error',
+          'Invalid Partner ID',
+          'Partner ID must contain only letters and numbers and cannot exceed 10 characters.'
+        );
 
-      resetForm();
-      await loadBusinessPartners();
-    } catch (error) {
-      setMessageType('error');
-      setMessage(
-        `✕ ${error.message || 'Something went wrong.'}`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        return false;
+      }
 
-  const handleEdit = (partner) => {
-    setEditingPartnerId(partner.partnerid);
+      if (!description) {
+        showAlert(
+          'error',
+          'Description Required',
+          'Description is required.'
+        );
 
-    setForm({
-      partnerid: partner.partnerid,
-      description: partner.description
-    });
+        return false;
+      }
 
-    setDuplicatePartnerId(false);
-    setMessage('');
-    setMessageType('');
-  };
+      if (
+        description.length > 50
+      ) {
+        showAlert(
+          'error',
+          'Description Too Long',
+          'Description cannot exceed 50 characters.'
+        );
 
-  const handleDelete = async (partnerid) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete Business Partner ${partnerid}?`
-    );
+        return false;
+      }
 
-    if (!confirmed) {
-      return;
-    }
+      if (
+        isCreateMode &&
+        businessPartners.some(
+          (partner) =>
+            String(
+              partner.partnerid
+            ).toUpperCase() ===
+            partnerid.toUpperCase()
+        )
+      ) {
+        showAlert(
+          'error',
+          'Duplicate Partner ID',
+          'Partner ID already exists.'
+        );
 
-    setMessage('');
-    setMessageType('');
+        return false;
+      }
 
-    try {
-      /*
-       * DELETE requests also require CSRF protection.
-       */
+      return true;
+    };
 
-      const response = await authenticatedFetch(
-        `/api/business-partners/${partnerid}`,
-        {
-          method: 'DELETE'
+  /* =========================================================
+     CREATE / UPDATE
+  ========================================================= */
+
+  const handleSubmit =
+    async (event) => {
+      event.preventDefault();
+
+      if (
+        loading ||
+        listLoading ||
+        mode === 'view'
+      ) {
+        return;
+      }
+
+      if (
+        isEditMode &&
+        !hasUnsavedChanges
+      ) {
+        showAlert(
+          'info',
+          'No Changes',
+          'No Business Partner changes have been made.'
+        );
+
+        return;
+      }
+
+      if (!validateForm()) {
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const partnerid =
+          form.partnerid.trim();
+
+        const description =
+          form.description.trim();
+
+        const response =
+          await authenticatedFetch(
+            isEditMode
+              ? `/api/business-partners/${encodeURIComponent(
+                  partnerid
+                )}`
+              : '/api/business-partners',
+            {
+              method:
+                isEditMode
+                  ? 'PUT'
+                  : 'POST',
+
+              headers: {
+                'Content-Type':
+                  'application/json'
+              },
+
+              body:
+                JSON.stringify({
+                  partnerid,
+                  description
+                })
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              (
+                isEditMode
+                  ? 'Failed to update Business Partner.'
+                  : 'Failed to save Business Partner.'
+              )
+          );
         }
-      );
 
-      const result = await response.json();
+        const refreshedPartners =
+          await loadBusinessPartners();
 
-      if (!response.ok) {
-        throw new Error(
-          result.error || 'Failed to delete Business Partner.'
+        const savedPartner =
+          refreshedPartners.find(
+            (partner) =>
+              String(
+                partner.partnerid
+              ) ===
+              String(
+                partnerid
+              )
+          );
+
+        if (savedPartner) {
+          const nextForm = {
+            partnerid:
+              savedPartner.partnerid,
+
+            description:
+              savedPartner.description || ''
+          };
+
+          setForm(
+            nextForm
+          );
+
+          setOriginalForm(
+            nextForm
+          );
+
+          setMode('edit');
+        }
+
+        showAlert(
+          'success',
+          isEditMode
+            ? 'Business Partner Updated'
+            : 'Business Partner Saved',
+          isEditMode
+            ? `Business Partner ${partnerid} was updated successfully.`
+            : `Business Partner ${partnerid} was saved successfully.`
         );
+
+      } catch (error) {
+        showAlert(
+          'error',
+          isEditMode
+            ? 'Update Failed'
+            : 'Save Failed',
+          error.message ||
+            'Something went wrong.'
+        );
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  /* =========================================================
+     DELETE
+  ========================================================= */
+
+  const requestDelete =
+    () => {
+      if (!isEditMode) {
+        return;
       }
 
-      setMessageType('success');
-      setMessage('✓ Business Partner deleted successfully!');
+      setConfirmation({
+        open: true,
+        type: 'delete'
+      });
+    };
 
-      if (editingPartnerId === partnerid) {
-        resetForm();
+  const deletePartner =
+    async () => {
+      const partnerId =
+        form.partnerid;
+
+      setConfirmation({
+        open: false,
+        type: ''
+      });
+
+      setLoading(true);
+
+      try {
+        const response =
+          await authenticatedFetch(
+            `/api/business-partners/${encodeURIComponent(
+              partnerId
+            )}`,
+            {
+              method:
+                'DELETE'
+            }
+          );
+
+        const result =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error ||
+              'Failed to delete Business Partner.'
+          );
+        }
+
+        await loadBusinessPartners();
+
+        resetToViewMode();
+
+        showAlert(
+          'success',
+          'Business Partner Deleted',
+          `Business Partner ${partnerId} was deleted successfully.`
+        );
+
+      } catch (error) {
+        showAlert(
+          'error',
+          'Delete Failed',
+          error.message ||
+            'Failed to delete Business Partner.'
+        );
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  /* =========================================================
+     NEW PARTNER
+  ========================================================= */
+
+  const handleNewPartner =
+    () => {
+      if (loading) {
+        return;
       }
 
-      await loadBusinessPartners();
-    } catch (error) {
-      setMessageType('error');
-      setMessage(
-        `✕ ${error.message || 'Something went wrong.'}`
-      );
-    }
-  };
+      if (hasUnsavedChanges) {
+        setConfirmation({
+          open: true,
+          type: 'new'
+        });
 
-  const handleCancelEdit = () => {
-    resetForm();
-    setMessage('');
-    setMessageType('');
-  };
+        return;
+      }
+
+      startNewPartner();
+    };
+
+  /* =========================================================
+     CONFIRM ACTION
+  ========================================================= */
+
+  const handleConfirmAction =
+    () => {
+      if (
+        confirmation.type ===
+        'delete'
+      ) {
+        deletePartner();
+        return;
+      }
+
+      if (
+        confirmation.type ===
+        'new'
+      ) {
+        startNewPartner();
+        return;
+      }
+
+      if (
+        confirmation.type.startsWith(
+          'switch:'
+        )
+      ) {
+        const partnerId =
+          confirmation.type.replace(
+            'switch:',
+            ''
+          );
+
+        setConfirmation({
+          open: false,
+          type: ''
+        });
+
+        if (partnerId) {
+          loadPartner(
+            partnerId
+          );
+        } else {
+          resetToViewMode();
+        }
+      }
+    };
+
+  /* =========================================================
+     CONFIRMATION CONTENT
+  ========================================================= */
+
+  const confirmationTitle =
+    confirmation.type === 'delete'
+      ? 'Delete Business Partner?'
+      : confirmation.type === 'new'
+        ? 'Start a New Business Partner?'
+        : 'Switch Business Partner?';
+
+  const confirmationMessage =
+    confirmation.type === 'delete'
+      ? `Business Partner ${form.partnerid} will be permanently deleted. This action may be blocked if the partner is already used by a project.`
+      : confirmation.type === 'new'
+        ? 'You have unsaved Business Partner changes. Starting a new record will discard them.'
+        : 'You have unsaved Business Partner changes. Selecting another Partner ID will discard them.';
+
+  const confirmationButton =
+    confirmation.type === 'delete'
+      ? 'Delete'
+      : confirmation.type === 'new'
+        ? 'Discard & Start New'
+        : 'Discard & Switch';
+
+  /* =========================================================
+     ALERT STYLE
+  ========================================================= */
+
+  const alertStyle =
+    alert.type === 'success'
+      ? {
+          icon: '✓',
+          background:
+            '#DCFCE7',
+          color:
+            '#166534'
+        }
+      : alert.type === 'error'
+        ? {
+            icon: '✕',
+            background:
+              '#FEE2E2',
+            color:
+              '#B91C1C'
+          }
+        : {
+            icon: 'ℹ',
+            background:
+              '#DBEAFE',
+            color:
+              '#1D4ED8'
+          };
+
+  /* =========================================================
+     UI
+  ========================================================= */
 
   return (
     <div className="page-wrap">
       <div className="card">
-        <h1>🤝 Business Partner</h1>
+
+        <div className="page-heading">
+          <div>
+            <h1>
+              🤝 Business Partner
+            </h1>
+
+            <p className="page-description">
+              Select an existing Partner ID to view,
+              update or delete the Business Partner,
+              or create a new Business Partner.
+            </p>
+          </div>
+        </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={
+            handleSubmit
+          }
           className="project-form"
         >
           <div className="form-grid">
+
+            {/* PARTNER ID */}
+
             <label>
               Partner ID *
-              <input
-                name="partnerid"
-                value={form.partnerid}
-                onChange={handlePartnerIdChange}
-                maxLength={10}
-                placeholder="e.g., BP0001"
-                required
-                disabled={Boolean(editingPartnerId)}
-              />
 
-              {duplicatePartnerId && !editingPartnerId && (
-                <span className="field-error">
-                  Partner ID already exists.
-                </span>
+              {isCreateMode ? (
+                <input
+                  name="partnerid"
+                  value={
+                    form.partnerid
+                  }
+                  onChange={
+                    handlePartnerIdChange
+                  }
+                  maxLength={10}
+                  placeholder="e.g. BP0001"
+                  disabled={
+                    loading
+                  }
+                  required
+                />
+              ) : (
+                <select
+                  value={
+                    form.partnerid
+                  }
+                  onChange={
+                    handlePartnerSelection
+                  }
+                  disabled={
+                    loading ||
+                    listLoading
+                  }
+                >
+                  <option value="">
+                    {listLoading
+                      ? 'Loading Business Partners...'
+                      : 'Select Partner ID'}
+                  </option>
+
+                  {businessPartners.map(
+                    (partner) => (
+                      <option
+                        key={
+                          partner.partnerid
+                        }
+                        value={
+                          partner.partnerid
+                        }
+                      >
+                        {partner.partnerid}
+                        {' - '}
+                        {partner.description}
+                      </option>
+                    )
+                  )}
+                </select>
               )}
             </label>
 
+            {/* DESCRIPTION */}
+
             <label>
               Description *
+
               <input
                 name="description"
-                value={form.description}
-                onChange={handleDescriptionChange}
+                value={
+                  form.description
+                }
+                onChange={
+                  handleDescriptionChange
+                }
                 maxLength={50}
-                placeholder="Enter business partner description"
+                placeholder="Enter Business Partner description"
+                disabled={
+                  loading ||
+                  mode === 'view'
+                }
                 required
               />
             </label>
           </div>
 
-          <div className="button-row">
+          {/* ACTION BUTTONS */}
+
+          <div
+            style={{
+              display:
+                'flex',
+              alignItems:
+                'center',
+              gap:
+                '12px',
+              flexWrap:
+                'wrap',
+              marginTop:
+                '20px'
+            }}
+          >
             <button
               type="submit"
               disabled={
                 loading ||
-                (duplicatePartnerId && !editingPartnerId)
+                listLoading ||
+                mode === 'view' ||
+                (
+                  isEditMode &&
+                  !hasUnsavedChanges
+                )
               }
             >
               {loading
-                ? '⏳ Saving...'
-                : editingPartnerId
-                  ? '✏️ Update Business Partner'
+                ? '⏳ Processing...'
+                : isEditMode
+                  ? '💾 Update Business Partner'
                   : '💾 Save Business Partner'}
             </button>
 
-            {editingPartnerId && (
+            {isEditMode && (
+              <button
+                type="button"
+                className="delete-button"
+                onClick={
+                  requestDelete
+                }
+                disabled={
+                  loading
+                }
+              >
+                🗑 Delete Business Partner
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={
+                handleNewPartner
+              }
+              disabled={
+                loading
+              }
+            >
+              ➕ New Business Partner
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* =====================================================
+          CONFIRMATION MODAL
+      ===================================================== */}
+
+      {confirmation.open && (
+        <div
+          role="presentation"
+          onMouseDown={
+            (event) => {
+              if (
+                event.target ===
+                event.currentTarget
+              ) {
+                setConfirmation({
+                  open: false,
+                  type: ''
+                });
+              }
+            }
+          }
+          style={{
+            position:
+              'fixed',
+            inset:
+              0,
+            zIndex:
+              9999,
+            display:
+              'flex',
+            alignItems:
+              'center',
+            justifyContent:
+              'center',
+            padding:
+              '20px',
+            backgroundColor:
+              'rgba(15, 23, 42, 0.60)',
+            backdropFilter:
+              'blur(3px)'
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="card"
+            style={{
+              width:
+                '100%',
+              maxWidth:
+                '440px',
+              padding:
+                '28px',
+              borderRadius:
+                '14px',
+              boxShadow:
+                '0 20px 60px rgba(0, 0, 0, 0.25)'
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                width:
+                  '52px',
+                height:
+                  '52px',
+                display:
+                  'flex',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+                borderRadius:
+                  '50%',
+                backgroundColor:
+                  '#FEF3C7',
+                color:
+                  '#B45309',
+                fontSize:
+                  '26px',
+                marginBottom:
+                  '18px'
+              }}
+            >
+              ⚠
+            </div>
+
+            <h2
+              style={{
+                fontSize:
+                  '21px',
+                margin:
+                  '0 0 12px'
+              }}
+            >
+              {confirmationTitle}
+            </h2>
+
+            <p
+              style={{
+                fontSize:
+                  '14px',
+                lineHeight:
+                  1.7,
+                opacity:
+                  0.8,
+                marginBottom:
+                  '24px'
+              }}
+            >
+              {confirmationMessage}
+            </p>
+
+            <div
+              style={{
+                display:
+                  'flex',
+                justifyContent:
+                  'flex-end',
+                gap:
+                  '12px',
+                flexWrap:
+                  'wrap'
+              }}
+            >
               <button
                 type="button"
                 className="secondary-button"
-                onClick={handleCancelEdit}
-                disabled={loading}
+                onClick={() =>
+                  setConfirmation({
+                    open: false,
+                    type: ''
+                  })
+                }
+                autoFocus
               >
-                Cancel Edit
+                Cancel
               </button>
-            )}
-          </div>
-        </form>
 
-        {message && (
-          <p className={`message message-${messageType}`}>
-            {message}
-          </p>
-        )}
-
-        <div className="partner-list-section">
-          <h2>Business Partners</h2>
-
-          {listLoading ? (
-            <p>Loading Business Partners...</p>
-          ) : businessPartners.length === 0 ? (
-            <p>No Business Partners found.</p>
-          ) : (
-            <div className="table-wrap">
-              <table className="partner-table">
-                <thead>
-                  <tr>
-                    <th>Partner ID</th>
-                    <th>Description</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {businessPartners.map((partner) => (
-                    <tr key={partner.partnerid}>
-                      <td>{partner.partnerid}</td>
-                      <td>{partner.description}</td>
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            type="button"
-                            className="edit-button"
-                            onClick={() => handleEdit(partner)}
-                          >
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="delete-button"
-                            onClick={() =>
-                              handleDelete(partner.partnerid)
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <button
+                type="button"
+                className={
+                  confirmation.type ===
+                  'delete'
+                    ? 'delete-button'
+                    : ''
+                }
+                onClick={
+                  handleConfirmAction
+                }
+              >
+                {confirmationButton}
+              </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* =====================================================
+          SYSTEM ALERT
+      ===================================================== */}
+
+      {alert.open && (
+        <div
+          role="presentation"
+          onMouseDown={
+            (event) => {
+              if (
+                event.target ===
+                event.currentTarget
+              ) {
+                closeAlert();
+              }
+            }
+          }
+          style={{
+            position:
+              'fixed',
+            inset:
+              0,
+            zIndex:
+              10000,
+            display:
+              'flex',
+            alignItems:
+              'center',
+            justifyContent:
+              'center',
+            padding:
+              '20px',
+            backgroundColor:
+              'rgba(15, 23, 42, 0.60)',
+            backdropFilter:
+              'blur(3px)'
+          }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="card"
+            style={{
+              width:
+                '100%',
+              maxWidth:
+                '440px',
+              padding:
+                '28px',
+              borderRadius:
+                '14px',
+              boxShadow:
+                '0 20px 60px rgba(0, 0, 0, 0.25)'
+            }}
+          >
+            <div
+              aria-hidden="true"
+              style={{
+                width:
+                  '52px',
+                height:
+                  '52px',
+                display:
+                  'flex',
+                alignItems:
+                  'center',
+                justifyContent:
+                  'center',
+                borderRadius:
+                  '50%',
+                backgroundColor:
+                  alertStyle.background,
+                color:
+                  alertStyle.color,
+                fontSize:
+                  '26px',
+                fontWeight:
+                  700,
+                marginBottom:
+                  '18px'
+              }}
+            >
+              {alertStyle.icon}
+            </div>
+
+            <h2
+              style={{
+                fontSize:
+                  '21px',
+                margin:
+                  '0 0 12px'
+              }}
+            >
+              {alert.title}
+            </h2>
+
+            <p
+              style={{
+                fontSize:
+                  '14px',
+                lineHeight:
+                  1.7,
+                opacity:
+                  0.8,
+                marginBottom:
+                  '24px'
+              }}
+            >
+              {alert.message}
+            </p>
+
+            <div
+              style={{
+                display:
+                  'flex',
+                justifyContent:
+                  'flex-end'
+              }}
+            >
+              <button
+                type="button"
+                onClick={
+                  closeAlert
+                }
+                autoFocus
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

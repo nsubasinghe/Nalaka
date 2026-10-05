@@ -38,9 +38,33 @@ const readText = (value) => {
 const optionalText = (value) => {
   const text = readText(value);
 
+  if (text === null) {
+    return null;
+  }
+
   return text === ''
     ? null
     : text;
+};
+
+const isValidUuid = (value) => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+};
+
+const validateOptionalString = (
+  value,
+  maxLength
+) => {
+  if (value === null) {
+    return true;
+  }
+
+  return (
+    typeof value === 'string' &&
+    value.length <= maxLength
+  );
 };
 
 /* =========================================================
@@ -56,7 +80,12 @@ router.get(
 
   async (req, res) => {
     try {
-      if (!requireDatabase(res, pool)) {
+      if (
+        !requireDatabase(
+          res,
+          pool
+        )
+      ) {
         return;
       }
 
@@ -120,11 +149,23 @@ router.get(
               pm."Status"
                 AS status,
 
-              pv."Status"
-                AS versionstatus,
+              pm."CreatedBy"
+                AS createdby,
 
-              pv."VersionNote"
-                AS versionnote
+              pm."CreatedDate"
+                AS createddate,
+
+              pm."UpdatedBy"
+                AS updatedby,
+
+              pm."UpdatedDate"
+                AS updateddate,
+
+              pm."VersionNote"
+                AS versionnote,
+
+              pv."Status"
+                AS versionstatus
 
             FROM "ProjectMaster" pm
 
@@ -143,16 +184,6 @@ router.get(
               AND pv."VersionID" =
                   pm."VersionID"
 
-            /* =========================================
-               PROJECT ACCESS FILTER
-
-               Administrators:
-                 All projects.
-
-               Other roles:
-                 Only assigned Project Codes.
-            ========================================= */
-
             WHERE
               (
                 $1::BOOLEAN = TRUE
@@ -163,10 +194,12 @@ router.get(
                   FROM public."AuthUserProject" aup
 
                   WHERE
-                    aup."UserID" = $2::UUID
+                    aup."UserID" =
+                      $2::UUID
 
-                    AND aup."ProjectCode" =
-                        pm."ProjectCode"
+                    AND
+                    aup."ProjectCode" =
+                      pm."ProjectCode"
                 )
               )
 
@@ -174,11 +207,13 @@ router.get(
               pm."ProjectCode",
 
               CASE
-                WHEN pm."VersionID" ~
-                  '^[0-9]+$'
+                WHEN
+                  pm."VersionID" ~
+                    '^[0-9]+$'
                 THEN
                   pm."VersionID"::INTEGER
-                ELSE 999
+                ELSE
+                  999
               END,
 
               pm."VersionID";
@@ -214,11 +249,9 @@ router.get(
    ALLOWED ROLE:
    - ADMIN
 
-   Creates:
+   CREATES:
    1. ProjectMaster record
    2. Initial ProjectVersion record
-
-   Both operations are performed in one transaction.
 ========================================================= */
 
 router.post(
@@ -229,12 +262,17 @@ router.post(
   requireAdmin,
 
   async (req, res) => {
-    if (!requireDatabase(res, pool)) {
+    if (
+      !requireDatabase(
+        res,
+        pool
+      )
+    ) {
       return;
     }
 
     /* ===============================================
-       READ AND VALIDATE INPUT
+       VALIDATE REQUEST BODY
     =============================================== */
 
     const body = req.body;
@@ -244,189 +282,296 @@ router.post(
       typeof body !== 'object' ||
       Array.isArray(body)
     ) {
-      return res.status(400).json({
-        success: false,
-        error: 'A valid project object is required.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'A valid project object is required.'
+        });
     }
 
-    const projectcode = readText(
-      body.projectcode
-    );
+    /* ===============================================
+       READ VALUES
+    =============================================== */
 
-    const versionid = readText(
-      body.versionid
-    );
+    const projectcode =
+      readText(
+        body.projectcode
+      );
 
-    const projectname = readText(
-      body.projectname
-    );
+    const versionid =
+      readText(
+        body.versionid
+      );
 
-    const projectdescription = optionalText(
-      body.projectdescription
-    );
+    const projectname =
+      readText(
+        body.projectname
+      );
 
-    const projecttype = optionalText(
-      body.projecttype
-    );
+    const projectdescription =
+      optionalText(
+        body.projectdescription
+      );
 
-    const partnerid = optionalText(
-      body.partnerid
-    );
+    const projecttype =
+      optionalText(
+        body.projecttype
+      );
 
-    const currency = optionalText(
-      body.currency
-    );
+    const partnerid =
+      optionalText(
+        body.partnerid
+      );
 
-    const location = optionalText(
-      body.location
-    );
+    const currency =
+      optionalText(
+        body.currency
+      );
 
-    const region = optionalText(
-      body.region
-    );
+    const location =
+      optionalText(
+        body.location
+      );
 
-    const status = optionalText(
-      body.status
-    );
+    const region =
+      optionalText(
+        body.region
+      );
 
-    const createdby = optionalText(
-      body.createdby
-    );
+    const status =
+      optionalText(
+        body.status
+      );
 
-    const updatedby = optionalText(
-      body.updatedby
-    );
+    const createdby =
+      optionalText(
+        body.createdby
+      );
 
-    const submittedValues = [
-      projectcode,
-      versionid,
-      projectname,
-      projectdescription,
-      projecttype,
-      partnerid,
-      currency,
-      location,
-      region,
-      status,
-      createdby,
-      updatedby
-    ];
+    const updatedby =
+      optionalText(
+        body.updatedby
+      );
 
-    if (
-      submittedValues.some(
-        (value) => value === null &&
-          value !== projectdescription &&
-          value !== projecttype &&
-          value !== partnerid &&
-          value !== currency &&
-          value !== location &&
-          value !== region &&
-          value !== status &&
-          value !== createdby &&
-          value !== updatedby
-      )
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid project field values.'
-      });
-    }
+    /* ===============================================
+       REQUIRED VALUES
+    =============================================== */
 
     if (
-      typeof projectcode !== 'string' ||
-      typeof versionid !== 'string' ||
-      typeof projectname !== 'string' ||
       !projectcode ||
       !versionid ||
       !projectname
     ) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Project Code, Version ID and Project Name are required.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Project Code, Version ID and Project Name are required.'
+        });
     }
 
+    /* ===============================================
+       PROJECT CODE VALIDATION
+    =============================================== */
+
     if (
+      typeof projectcode !== 'string' ||
       !/^[A-Z0-9]{1,10}$/.test(
         projectcode
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Project Code must contain 1–10 uppercase letters or numbers.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Project Code must contain 1–10 uppercase letters or numbers.'
+        });
     }
 
+    /* ===============================================
+       VERSION VALIDATION
+    =============================================== */
+
     if (
+      typeof versionid !== 'string' ||
       !/^[0-9]{1,2}$/.test(
         versionid
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Version ID must contain one or two digits.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Version ID must contain one or two digits.'
+        });
     }
 
-    if (projectname.length > 50) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Project Name cannot exceed 50 characters.'
-      });
+    /* ===============================================
+       PROJECT NAME
+    =============================================== */
+
+    if (
+      typeof projectname !== 'string' ||
+      projectname.length > 50
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Project Name cannot exceed 50 characters.'
+        });
+    }
+
+    /* ===============================================
+       OPTIONAL FIELD LENGTHS
+    =============================================== */
+
+    if (
+      !validateOptionalString(
+        projectdescription,
+        500
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Project Description cannot exceed 500 characters.'
+        });
     }
 
     if (
-      projectdescription !== null &&
-      (
-        typeof projectdescription !== 'string' ||
-        projectdescription.length > 50
+      !validateOptionalString(
+        projecttype,
+        2
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Project Description cannot exceed 50 characters.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Project Type cannot exceed 2 characters.'
+        });
     }
-
-    const optionalFields = [
-      projecttype,
-      partnerid,
-      currency,
-      location,
-      region,
-      status,
-      createdby,
-      updatedby
-    ];
 
     if (
-      optionalFields.some(
-        (value) =>
-          value !== null &&
-          typeof value !== 'string'
+      !validateOptionalString(
+        partnerid,
+        10
       )
     ) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid optional project field value.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Business Partner cannot exceed 10 characters.'
+        });
     }
+
+    if (
+      !validateOptionalString(
+        currency,
+        3
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Currency cannot exceed 3 characters.'
+        });
+    }
+
+    if (
+      !validateOptionalString(
+        location,
+        20
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Location cannot exceed 20 characters.'
+        });
+    }
+
+    if (
+      !validateOptionalString(
+        region,
+        20
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Region cannot exceed 20 characters.'
+        });
+    }
+
+    if (
+      !validateOptionalString(
+        createdby,
+        10
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Created By cannot exceed 10 characters.'
+        });
+    }
+
+    if (
+      !validateOptionalString(
+        updatedby,
+        10
+      )
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Updated By cannot exceed 10 characters.'
+        });
+    }
+
+    /* ===============================================
+       STATUS VALIDATION
+    =============================================== */
 
     if (
       status !== null &&
-      !['P', 'A', 'C', 'X'].includes(status)
+      ![
+        'P',
+        'A',
+        'C',
+        'X'
+      ].includes(status)
     ) {
-      return res.status(400).json({
-        success: false,
-        error:
-          'Invalid project status.'
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error:
+            'Invalid project status.'
+        });
     }
 
     /* ===============================================
@@ -436,18 +581,15 @@ router.post(
     let client;
 
     try {
-      client = await pool.connect();
+      client =
+        await pool.connect();
 
       await client.query(
         'BEGIN'
       );
 
       /* =============================================
-         CHECK EXISTING PROJECT CODE
-
-         Project Master creation must not
-         overwrite an existing project or
-         create another version accidentally.
+         DUPLICATE PROJECT CHECK
       ============================================= */
 
       const existingProject =
@@ -475,19 +617,17 @@ router.post(
           'ROLLBACK'
         );
 
-        return res.status(409).json({
-          success: false,
-          error:
-            'Project Code already exists. Use the project version functionality for an existing project.'
-        });
+        return res
+          .status(409)
+          .json({
+            success: false,
+            error:
+              'Project Code already exists. Use the project version functionality for an existing project.'
+          });
       }
 
       /* =============================================
-         CHECK EXISTING PROJECT VERSION
-
-         Also prevents creating a master
-         record for an existing version-only
-         Project Code.
+         DUPLICATE VERSION CHECK
       ============================================= */
 
       const existingVersion =
@@ -515,22 +655,21 @@ router.post(
           'ROLLBACK'
         );
 
-        return res.status(409).json({
-          success: false,
-          error:
-            'A project version already exists for this Project Code.'
-        });
+        return res
+          .status(409)
+          .json({
+            success: false,
+            error:
+              'A project version already exists for this Project Code.'
+          });
       }
 
       /* =============================================
          CREATE PROJECT MASTER
-
-         UUID is generated by Node.js because
-         ProjectMaster.ProjectID has no
-         database default.
       ============================================= */
 
-      const projectId = randomUUID();
+      const projectId =
+        randomUUID();
 
       const masterResult =
         await client.query(
@@ -604,7 +743,22 @@ router.post(
                 AS region,
 
               "Status"
-                AS status;
+                AS status,
+
+              "CreatedBy"
+                AS createdby,
+
+              "CreatedDate"
+                AS createddate,
+
+              "UpdatedBy"
+                AS updatedby,
+
+              "UpdatedDate"
+                AS updateddate,
+
+              "VersionNote"
+                AS versionnote;
           `,
           [
             projectId,
@@ -625,13 +779,6 @@ router.post(
 
       /* =============================================
          CREATE INITIAL ACTIVE VERSION
-
-         Version Status:
-         A = Active
-         I = Inactive
-
-         This is separate from the
-         ProjectMaster.Status field.
       ============================================= */
 
       const versionResult =
@@ -675,25 +822,27 @@ router.post(
         );
 
       /* =============================================
-         COMMIT TRANSACTION
+         COMMIT
       ============================================= */
 
       await client.query(
         'COMMIT'
       );
 
-      return res.status(201).json({
-        success: true,
+      return res
+        .status(201)
+        .json({
+          success: true,
 
-        message:
-          'Project saved successfully.',
+          message:
+            'Project saved successfully.',
 
-        project:
-          masterResult.rows[0],
+          project:
+            masterResult.rows[0],
 
-        projectVersion:
-          versionResult.rows[0]
-      });
+          projectVersion:
+            versionResult.rows[0]
+        });
 
     } catch (error) {
       if (client) {
@@ -716,39 +865,45 @@ router.post(
       if (
         error.code === '23505'
       ) {
-        return res.status(409).json({
-          success: false,
-          error:
-            'This project or project version already exists.'
-        });
+        return res
+          .status(409)
+          .json({
+            success: false,
+            error:
+              'This project or project version already exists.'
+          });
       }
 
       /* =============================================
-         INVALID MASTER DATA REFERENCE
+         FOREIGN KEY FAILURE
       ============================================= */
 
       if (
         error.code === '23503'
       ) {
-        return res.status(400).json({
-          success: false,
-          error:
-            'One of the selected master data values is invalid.'
-        });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'One of the selected master data values is invalid.'
+          });
       }
 
       /* =============================================
-         FIELD LENGTH ERROR
+         FIELD LENGTH FAILURE
       ============================================= */
 
       if (
         error.code === '22001'
       ) {
-        return res.status(400).json({
-          success: false,
-          error:
-            'One or more project field values exceed the database field length.'
-        });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'One or more project field values exceed the database field length.'
+          });
       }
 
       return sendDatabaseError(
@@ -761,6 +916,509 @@ router.post(
       if (client) {
         client.release();
       }
+    }
+  }
+);
+
+/* =========================================================
+   UPDATE PROJECT MASTER
+
+   PUT /api/projects/:projectid
+
+   ALLOWED ROLE:
+   - ADMIN
+
+   READ-ONLY IDENTITY FIELDS:
+   - ProjectID
+   - ProjectCode
+   - VersionID
+
+   EDITABLE FIELDS:
+   - ProjectName
+   - ProjectDescription
+   - ProjectType
+   - PartnerID
+   - Currency
+   - Location
+   - Region
+   - Status
+   - CreatedBy
+   - UpdatedBy
+========================================================= */
+
+router.put(
+  '/:projectid',
+
+  requireAuth,
+
+  requireAdmin,
+
+  async (req, res) => {
+    try {
+      if (
+        !requireDatabase(
+          res,
+          pool
+        )
+      ) {
+        return;
+      }
+
+      /* ===============================================
+         PROJECT ID
+      =============================================== */
+
+      const projectid =
+        req.params.projectid
+          ?.trim();
+
+      if (
+        !projectid ||
+        !isValidUuid(
+          projectid
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'A valid Project ID is required.'
+          });
+      }
+
+      /* ===============================================
+         REQUEST BODY
+      =============================================== */
+
+      const body =
+        req.body;
+
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        Array.isArray(body)
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'A valid project object is required.'
+          });
+      }
+
+      /* ===============================================
+         EDITABLE VALUES
+      =============================================== */
+
+      const projectname =
+        readText(
+          body.projectname
+        );
+
+      const projectdescription =
+        optionalText(
+          body.projectdescription
+        );
+
+      const projecttype =
+        optionalText(
+          body.projecttype
+        );
+
+      const partnerid =
+        optionalText(
+          body.partnerid
+        );
+
+      const currency =
+        optionalText(
+          body.currency
+        );
+
+      const location =
+        optionalText(
+          body.location
+        );
+
+      const region =
+        optionalText(
+          body.region
+        );
+
+      const status =
+        optionalText(
+          body.status
+        );
+
+      const createdby =
+        optionalText(
+          body.createdby
+        );
+
+      const updatedby =
+        optionalText(
+          body.updatedby
+        );
+
+      /* ===============================================
+         PROJECT NAME VALIDATION
+      =============================================== */
+
+      if (
+        !projectname ||
+        typeof projectname !== 'string'
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Project Name is required.'
+          });
+      }
+
+      if (
+        projectname.length > 50
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Project Name cannot exceed 50 characters.'
+          });
+      }
+
+      /* ===============================================
+         OPTIONAL FIELD VALIDATION
+      =============================================== */
+
+      if (
+        !validateOptionalString(
+          projectdescription,
+          500
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Project Description cannot exceed 500 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          projecttype,
+          2
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Project Type cannot exceed 2 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          partnerid,
+          10
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Business Partner cannot exceed 10 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          currency,
+          3
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Currency cannot exceed 3 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          location,
+          20
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Location cannot exceed 20 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          region,
+          20
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Region cannot exceed 20 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          createdby,
+          10
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Created By cannot exceed 10 characters.'
+          });
+      }
+
+      if (
+        !validateOptionalString(
+          updatedby,
+          10
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Updated By cannot exceed 10 characters.'
+          });
+      }
+
+      /* ===============================================
+         STATUS VALIDATION
+      =============================================== */
+
+      if (
+        status !== null &&
+        ![
+          'P',
+          'A',
+          'C',
+          'X'
+        ].includes(status)
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'Invalid project status.'
+          });
+      }
+
+      /* ===============================================
+         UPDATE PROJECT MASTER
+
+         ProjectID, ProjectCode and VersionID
+         are intentionally NOT updated.
+      =============================================== */
+
+      const result =
+        await pool.query(
+          `
+            UPDATE "ProjectMaster"
+
+            SET
+              "ProjectName" =
+                $1,
+
+              "ProjectDescription" =
+                $2,
+
+              "ProjectType" =
+                $3,
+
+              "PartnerID" =
+                $4,
+
+              "Currency" =
+                $5,
+
+              "Location" =
+                $6,
+
+              "Region" =
+                $7,
+
+              "Status" =
+                $8,
+
+              "CreatedBy" =
+                $9,
+
+              "UpdatedBy" =
+                $10,
+
+              "UpdatedDate" =
+                NOW()
+
+            WHERE
+              "ProjectID" =
+                $11::UUID
+
+            RETURNING
+              "ProjectID"
+                AS projectid,
+
+              "ProjectCode"
+                AS projectcode,
+
+              "VersionID"
+                AS versionid,
+
+              "ProjectName"
+                AS projectname,
+
+              "ProjectDescription"
+                AS projectdescription,
+
+              "ProjectType"
+                AS projecttype,
+
+              "PartnerID"
+                AS partnerid,
+
+              "Currency"
+                AS currency,
+
+              "Location"
+                AS location,
+
+              "Region"
+                AS region,
+
+              "Status"
+                AS status,
+
+              "CreatedBy"
+                AS createdby,
+
+              "CreatedDate"
+                AS createddate,
+
+              "UpdatedBy"
+                AS updatedby,
+
+              "UpdatedDate"
+                AS updateddate,
+
+              "VersionNote"
+                AS versionnote;
+          `,
+          [
+            projectname,
+            projectdescription,
+            projecttype,
+            partnerid,
+            currency,
+            location,
+            region,
+            status,
+            createdby,
+            updatedby,
+            projectid
+          ]
+        );
+
+      /* ===============================================
+         PROJECT NOT FOUND
+      =============================================== */
+
+      if (
+        result.rows.length === 0
+      ) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+            error:
+              'Project was not found.'
+          });
+      }
+
+      /* ===============================================
+         SUCCESS
+      =============================================== */
+
+      return res.json({
+        success: true,
+
+        message:
+          'Project updated successfully.',
+
+        project:
+          result.rows[0]
+      });
+
+    } catch (error) {
+      /* =============================================
+         FOREIGN KEY FAILURE
+      ============================================= */
+
+      if (
+        error.code === '23503'
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'One of the selected master data values is invalid.'
+          });
+      }
+
+      /* =============================================
+         FIELD LENGTH FAILURE
+      ============================================= */
+
+      if (
+        error.code === '22001'
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              'One or more project field values exceed the database field length.'
+          });
+      }
+
+      return sendDatabaseError(
+        res,
+        error,
+        'Failed to update project.'
+      );
     }
   }
 );
