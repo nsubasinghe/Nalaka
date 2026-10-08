@@ -1,307 +1,44 @@
 import {
   formatDate,
-  getWeekPeriodKey,
   workLocations
 } from './projectPlanUtils';
 
 /* =========================================================
-   FORMAT PERIOD LABEL
+   WEEK PERIOD LABEL
 ========================================================= */
 
-const getPeriodLabel = (displayWeek) => {
+const getPeriodLabel = (
+  week
+) => {
   if (
-    displayWeek.startDate &&
-    displayWeek.endDate
+    !week?.startDate ||
+    !week?.endDate
   ) {
     return {
-      start:
-        formatDate(
-          displayWeek.startDate
-        ),
-
-      end:
-        formatDate(
-          displayWeek.endDate
-        )
+      start: '',
+      end: ''
     };
   }
 
   return {
-    start: 'Legacy period',
-    end: ''
+    start:
+      formatDate(
+        week.startDate
+      ),
+
+    end:
+      formatDate(
+        week.endDate
+      )
   };
 };
 
 /* =========================================================
-   CURRENT VALUE FOR DISPLAY COLUMN
+   RESOURCE ROW
 ========================================================= */
 
-const getCurrentRowValue = (
+function ResourceRow({
   row,
-  displayWeek,
-  generatedWeeks
-) => {
-  /* -------------------------------------------------------
-     Normal exact-period match
-  ------------------------------------------------------- */
-
-  if (
-    displayWeek.currentWeekId
-  ) {
-    return (
-      row.weeklyValues[
-        displayWeek.currentWeekId
-      ] ?? ''
-    );
-  }
-
-  /* -------------------------------------------------------
-     Fallback exact-period search
-  ------------------------------------------------------- */
-
-  const matchingWeek =
-    generatedWeeks.find(
-      (week) =>
-        getWeekPeriodKey(
-          week
-        ) ===
-        `${displayWeek.periodStartDate}|${displayWeek.periodEndDate}`
-    );
-
-  if (
-    !matchingWeek
-  ) {
-    return '';
-  }
-
-  return (
-    row.weeklyValues[
-      matchingWeek.id
-    ] ?? ''
-  );
-};
-
-/* =========================================================
-   HISTORICAL RESOURCE ROW
-========================================================= */
-
-function HistoricalResourceRow({
-  row,
-  displayWeeks,
-  projectRoles,
-  resources,
-  showActionColumn
-}) {
-  const selectedRole =
-    projectRoles.find(
-      (role) =>
-        String(
-          role.projectroleid
-        ) ===
-        String(
-          row.projectRoleId
-        )
-    );
-
-  const selectedResource =
-    resources.find(
-      (resource) =>
-        String(
-          resource.resourceid
-        ) ===
-        String(
-          row.resourceId
-        )
-    );
-
-  return (
-    <tr
-      style={{
-        opacity: 0.78
-      }}
-    >
-      {/* =================================================
-          RECORD TYPE
-      ================================================= */}
-
-      <td>
-        <span
-          style={{
-            display:
-              'inline-block',
-            padding:
-              '4px 8px',
-            borderRadius:
-              '999px',
-            fontSize:
-              '12px',
-            fontWeight:
-              700,
-            background:
-              'rgba(0, 0, 0, 0.06)'
-          }}
-        >
-          Historical
-        </span>
-      </td>
-
-      {/* =================================================
-          PROJECT ROLE
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            selectedRole
-              ? `${selectedRole.projectroleid} - ${selectedRole.description}`
-              : row.projectRoleId
-          }
-          readOnly
-        />
-      </td>
-
-      {/* =================================================
-          SKILL
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            row.skill ||
-            ''
-          }
-          readOnly
-          placeholder="Auto"
-        />
-      </td>
-
-      {/* =================================================
-          RESOURCE
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            selectedResource
-              ? `${selectedResource.resourceid} - ${selectedResource.firstname || ''} ${selectedResource.lastname || ''}`.trim()
-              : row.resourceId
-          }
-          readOnly
-        />
-      </td>
-
-      {/* =================================================
-          COUNTRY
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            row.country ||
-            ''
-          }
-          readOnly
-          placeholder="Auto"
-        />
-      </td>
-
-      {/* =================================================
-          DESIGNATION
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            row.designation ||
-            ''
-          }
-          readOnly
-          placeholder="Auto"
-        />
-      </td>
-
-      {/* =================================================
-          WORK LOCATION
-      ================================================= */}
-
-      <td>
-        <input
-          value={
-            row.workLocation ||
-            ''
-          }
-          readOnly
-        />
-      </td>
-
-      {/* =================================================
-          HISTORICAL PERIOD VALUES
-      ================================================= */}
-
-      {displayWeeks.map(
-        (displayWeek) => {
-          const value =
-            row.weeklyValues[
-              displayWeek.id
-            ] ?? '';
-
-          return (
-            <td
-              key={
-                displayWeek.id
-              }
-              className="editable-week-cell"
-            >
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={
-                  value
-                }
-                readOnly
-                disabled
-                placeholder="-"
-                title={
-                  value !== ''
-                    ? 'Historical allocation - read only'
-                    : ''
-                }
-              />
-            </td>
-          );
-        }
-      )}
-
-      {/* =================================================
-          ACTION PLACEHOLDER
-      ================================================= */}
-
-      {showActionColumn && (
-        <td>
-          <span
-            style={{
-              fontSize:
-                '12px',
-              opacity:
-                0.65
-            }}
-          >
-            Read only
-          </span>
-        </td>
-      )}
-    </tr>
-  );
-}
-
-/* =========================================================
-   CURRENT RESOURCE ROW
-========================================================= */
-
-function CurrentResourceRow({
-  row,
-  displayWeeks,
   generatedWeeks,
   projectRoles,
   resources,
@@ -313,34 +50,10 @@ function CurrentResourceRow({
 }) {
   return (
     <tr>
-      {/* =================================================
-          RECORD TYPE
-      ================================================= */}
 
-      <td>
-        <span
-          style={{
-            display:
-              'inline-block',
-            padding:
-              '4px 8px',
-            borderRadius:
-              '999px',
-            fontSize:
-              '12px',
-            fontWeight:
-              700,
-            background:
-              'rgba(0, 128, 0, 0.08)'
-          }}
-        >
-          Current
-        </span>
-      </td>
-
-      {/* =================================================
+      {/* =====================================================
           PROJECT ROLE
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <select
@@ -365,7 +78,9 @@ function CurrentResourceRow({
           </option>
 
           {projectRoles.map(
-            (role) => (
+            (
+              role
+            ) => (
               <option
                 key={
                   role.projectroleid
@@ -389,23 +104,24 @@ function CurrentResourceRow({
         </select>
       </td>
 
-      {/* =================================================
+      {/* =====================================================
           SKILL
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <input
           value={
-            row.skill
+            row.skill ||
+            ''
           }
           readOnly
           placeholder="Auto"
         />
       </td>
 
-      {/* =================================================
+      {/* =====================================================
           PLANNED RESOURCE
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <select
@@ -430,7 +146,9 @@ function CurrentResourceRow({
           </option>
 
           {resources.map(
-            (resource) => (
+            (
+              resource
+            ) => (
               <option
                 key={
                   resource.resourceid
@@ -452,7 +170,8 @@ function CurrentResourceRow({
                 {' '}
 
                 {
-                  resource.lastname
+                  resource.lastname ||
+                  ''
                 }
               </option>
             )
@@ -460,37 +179,39 @@ function CurrentResourceRow({
         </select>
       </td>
 
-      {/* =================================================
+      {/* =====================================================
           COUNTRY
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <input
           value={
-            row.country
+            row.country ||
+            ''
           }
           readOnly
           placeholder="Auto"
         />
       </td>
 
-      {/* =================================================
+      {/* =====================================================
           DESIGNATION
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <input
           value={
-            row.designation
+            row.designation ||
+            ''
           }
           readOnly
           placeholder="Auto"
         />
       </td>
 
-      {/* =================================================
+      {/* =====================================================
           WORK LOCATION
-      ================================================= */}
+      ===================================================== */}
 
       <td>
         <select
@@ -515,7 +236,9 @@ function CurrentResourceRow({
           </option>
 
           {workLocations.map(
-            (location) => (
+            (
+              location
+            ) => (
               <option
                 key={
                   location
@@ -533,80 +256,51 @@ function CurrentResourceRow({
         </select>
       </td>
 
-      {/* =================================================
-          EXACT PERIOD COLUMNS
-      ================================================= */}
+      {/* =====================================================
+          GENERATED WEEK VALUES
+      ===================================================== */}
 
-      {displayWeeks.map(
-        (displayWeek) => {
-          const currentValue =
-            getCurrentRowValue(
-              row,
-              displayWeek,
-              generatedWeeks
-            );
-
-          const currentColumn =
-            Boolean(
-              displayWeek.isCurrent
-            );
-
-          const currentWeek =
-            generatedWeeks.find(
-              (week) =>
-                week.id ===
-                displayWeek.currentWeekId
-            );
-
-          return (
-            <td
-              key={
-                displayWeek.id
+      {generatedWeeks.map(
+        (
+          week
+        ) => (
+          <td
+            key={
+              week.id
+            }
+            className="editable-week-cell"
+          >
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={
+                row.weeklyValues?.[
+                  week.id
+                ] ?? ''
               }
-              className="editable-week-cell"
-            >
-              {currentColumn &&
-              currentWeek ? (
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={
-                    currentValue
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    onWeekValueChange(
-                      row.id,
-                      currentWeek.id,
-                      event.target.value
-                    )
-                  }
-                  disabled={
-                    !editable
-                  }
-                  placeholder="0"
-                  title="Current planning allocation"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value=""
-                  readOnly
-                  disabled
-                  placeholder="-"
-                  title="Historical period"
-                />
-              )}
-            </td>
-          );
-        }
+              onChange={(
+                event
+              ) =>
+                onWeekValueChange(
+                  row.id,
+                  week.id,
+                  event.target.value
+                )
+              }
+              disabled={
+                !editable
+              }
+              placeholder="0"
+              title="Planned resource allocation percentage"
+            />
+          </td>
+        )
       )}
 
-      {/* =================================================
+      {/* =====================================================
           ACTIONS
-      ================================================= */}
+      ===================================================== */}
 
       {editable && (
         <td>
@@ -633,7 +327,7 @@ function CurrentResourceRow({
               disabled={
                 !row.lastEditedWeekId
               }
-              title="Copy the most recently edited percentage to all current planning periods"
+              title="Copy the most recently edited percentage to all generated weeks"
             >
               Apply to all
             </button>
@@ -662,8 +356,6 @@ function CurrentResourceRow({
 
 function WeeklyResourcePlan({
   generatedWeeks = [],
-  displayWeeks = [],
-  historicalResourceRows = [],
   resourceRows = [],
   projectRoles = [],
   resources = [],
@@ -683,70 +375,45 @@ function WeeklyResourcePlan({
   onSavePlan
 }) {
   /* =======================================================
-     FALLBACK
-
-     Until ProjectPlanPage passes displayWeeks, the
-     component can still work with generatedWeeks.
+     NO GENERATED WEEKS
   ======================================================= */
 
-  const resolvedDisplayWeeks =
-    displayWeeks.length > 0
-      ? displayWeeks
-      : generatedWeeks.map(
-          (week) => ({
-            id:
-              week.id,
-
-            year:
-              week.year,
-
-            weekNumber:
-              week.weekNumber,
-
-            startDate:
-              week.startDate,
-
-            endDate:
-              week.endDate,
-
-            periodStartDate:
-              '',
-
-            periodEndDate:
-              '',
-
-            currentWeekId:
-              week.id,
-
-            isCurrent:
-              true,
-
-            isHistorical:
-              false
-          })
-        );
-
   if (
-    resolvedDisplayWeeks.length ===
-      0
+    generatedWeeks.length ===
+    0
   ) {
     return null;
   }
 
+  /* =======================================================
+     EDITABLE STATE
+  ======================================================= */
+
   const editable =
     !viewingInactiveVersion &&
-    displayedVersionId ===
-      activeVersionId;
+    Boolean(
+      activeVersionId
+    ) &&
+    String(
+      displayedVersionId
+    ) ===
+      String(
+        activeVersionId
+      );
 
   const showActionColumn =
     editable;
 
+  /* =======================================================
+     UI
+  ======================================================= */
+
   return (
     <div className="project-plan-entry-section">
 
-      {/* =================================================
+      {/* =====================================================
           SECTION HEADER
-      ================================================= */}
+      ===================================================== */}
 
       <div className="section-heading-row">
         <div>
@@ -756,11 +423,8 @@ function WeeklyResourcePlan({
 
           <p>
             {viewingInactiveVersion
-              ? 'Historical allocations from this Project Version.'
-              : historicalResourceRows.length >
-                  0
-                ? 'Historical allocations are read-only. Current allocations can be edited and saved.'
-                : 'Enter resource allocation for the selected phase.'}
+              ? 'Resource allocations for this Project Version are read-only.'
+              : 'Enter planned resource allocation for each generated week.'}
           </p>
         </div>
 
@@ -771,63 +435,86 @@ function WeeklyResourcePlan({
             onClick={
               onAddResourceRow
             }
+            disabled={
+              saving ||
+              creatingVersion ||
+              Boolean(
+                activatingVersionId
+              )
+            }
           >
             + Add Resource Row
           </button>
         )}
       </div>
 
-      {/* =================================================
-          LEGEND
-      ================================================= */}
+      {/* =====================================================
+          GENERATED PERIOD SUMMARY
+      ===================================================== */}
 
-      {historicalResourceRows.length >
-        0 && (
-        <div
-          style={{
-            display:
-              'flex',
-            gap:
-              '16px',
-            flexWrap:
-              'wrap',
-            marginBottom:
-              '14px',
-            fontSize:
-              '13px'
-          }}
-        >
-          <span>
-            <strong>
-              Historical
-            </strong>
-            {' — preserved previous exact-period data'}
-          </span>
+      <div
+        style={{
+          display:
+            'flex',
+          gap:
+            '16px',
+          alignItems:
+            'center',
+          flexWrap:
+            'wrap',
+          marginBottom:
+            '14px',
+          fontSize:
+            '13px'
+        }}
+      >
+        <span>
+          <strong>
+            Planning Period:
+          </strong>
 
-          <span>
-            <strong>
-              Current
-            </strong>
-            {' — active planning period'}
-          </span>
-        </div>
-      )}
+          {' '}
 
-      {/* =================================================
+          {
+            formatDate(
+              generatedWeeks[0]
+                .startDate
+            )
+          }
+
+          {' — '}
+
+          {
+            formatDate(
+              generatedWeeks[
+                generatedWeeks.length -
+                  1
+              ].endDate
+            )
+          }
+        </span>
+
+        <span>
+          <strong>
+            Weeks:
+          </strong>
+
+          {' '}
+
+          {
+            generatedWeeks.length
+          }
+        </span>
+      </div>
+
+      {/* =====================================================
           TABLE
-      ================================================= */}
+      ===================================================== */}
 
       <div className="project-entry-grid-wrap">
-
         <table className="project-entry-grid">
-
           <thead>
             <tr>
-
-              <th>
-                Record
-              </th>
-
               <th>
                 Project Role
               </th>
@@ -852,28 +539,30 @@ function WeeklyResourcePlan({
                 Work Location
               </th>
 
-              {/* =========================================
-                  EXACT PERIOD COLUMNS
-              ========================================= */}
+              {/* =============================================
+                  GENERATED WEEK COLUMNS
+              ============================================= */}
 
-              {resolvedDisplayWeeks.map(
-                (displayWeek) => {
+              {generatedWeeks.map(
+                (
+                  week
+                ) => {
                   const period =
                     getPeriodLabel(
-                      displayWeek
+                      week
                     );
 
                   return (
                     <th
                       key={
-                        displayWeek.id
+                        week.id
                       }
                       className="week-column-header"
                     >
                       <strong>
                         Week{' '}
                         {
-                          displayWeek.weekNumber
+                          week.weekNumber
                         }
                       </strong>
 
@@ -896,19 +585,6 @@ function WeeklyResourcePlan({
                           </span>
                         </>
                       )}
-
-                      <small
-                        style={{
-                          marginTop:
-                            '4px',
-                          opacity:
-                            0.7
-                        }}
-                      >
-                        {displayWeek.isCurrent
-                          ? 'Current'
-                          : 'Historical'}
-                      </small>
                     </th>
                   );
                 }
@@ -919,56 +595,25 @@ function WeeklyResourcePlan({
                   Action
                 </th>
               )}
-
             </tr>
           </thead>
 
           <tbody>
 
             {/* =============================================
-                HISTORICAL ROWS FIRST
-            ============================================= */}
-
-            {historicalResourceRows.map(
-              (row) => (
-                <HistoricalResourceRow
-                  key={
-                    row.id
-                  }
-                  row={
-                    row
-                  }
-                  displayWeeks={
-                    resolvedDisplayWeeks
-                  }
-                  projectRoles={
-                    projectRoles
-                  }
-                  resources={
-                    resources
-                  }
-                  showActionColumn={
-                    showActionColumn
-                  }
-                />
-              )
-            )}
-
-            {/* =============================================
-                CURRENT ROWS SECOND
+                RESOURCE ROWS
             ============================================= */}
 
             {resourceRows.map(
-              (row) => (
-                <CurrentResourceRow
+              (
+                row
+              ) => (
+                <ResourceRow
                   key={
                     row.id
                   }
                   row={
                     row
-                  }
-                  displayWeeks={
-                    resolvedDisplayWeeks
                   }
                   generatedWeeks={
                     generatedWeeks
@@ -999,47 +644,41 @@ function WeeklyResourcePlan({
             )}
 
             {/* =============================================
-                NO ROWS
+                NO RESOURCE ROWS
             ============================================= */}
 
-            {historicalResourceRows.length ===
-              0 &&
-              resourceRows.length ===
-                0 && (
-                <tr>
-                  <td
-                    colSpan={
-                      7 +
-                      resolvedDisplayWeeks.length +
-                      (showActionColumn
+            {resourceRows.length ===
+              0 && (
+              <tr>
+                <td
+                  colSpan={
+                    6 +
+                    generatedWeeks.length +
+                    (
+                      showActionColumn
                         ? 1
-                        : 0)
-                    }
-                    style={{
-                      textAlign:
-                        'center'
-                    }}
-                  >
-                    No resource planning rows are
-                    available.
-                  </td>
-                </tr>
-              )}
-
+                        : 0
+                    )
+                  }
+                  style={{
+                    textAlign:
+                      'center'
+                  }}
+                >
+                  No resource planning rows are available.
+                </td>
+              </tr>
+            )}
           </tbody>
-
         </table>
-
       </div>
 
-      {/* =================================================
+      {/* =====================================================
           FOOTER
-      ================================================= */}
+      ===================================================== */}
 
       <div className="project-plan-grid-footer">
-
         <div className="week-value-help">
-
           Project Version:{' '}
 
           <strong>
@@ -1064,20 +703,6 @@ function WeeklyResourcePlan({
             : hasUnsavedChanges
               ? 'Active / Unsaved Changes'
               : 'Active / Saved'}
-
-          {historicalResourceRows.length >
-            0 && (
-            <>
-              {' | Historical rows: '}
-
-              <strong>
-                {
-                  historicalResourceRows.length
-                }
-              </strong>
-            </>
-          )}
-
         </div>
 
         {/* ===============================================
@@ -1105,9 +730,7 @@ function WeeklyResourcePlan({
                 : '✓ Saved'}
           </button>
         )}
-
       </div>
-
     </div>
   );
 }
