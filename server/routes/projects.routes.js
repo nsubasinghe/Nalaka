@@ -1,6 +1,8 @@
 import express from 'express';
 
-import { randomUUID } from 'node:crypto';
+import {
+  randomUUID
+} from 'node:crypto';
 
 import pool from '../db/pool.js';
 
@@ -14,13 +16,16 @@ import {
   requireAdmin
 } from '../middleware/auth.middleware.js';
 
-const router = express.Router();
+const router =
+  express.Router();
 
 /* =========================================================
    VALIDATION HELPERS
 ========================================================= */
 
-const readText = (value) => {
+const readText = (
+  value
+) => {
   if (
     value === undefined ||
     value === null
@@ -28,17 +33,26 @@ const readText = (value) => {
     return '';
   }
 
-  if (typeof value !== 'string') {
+  if (
+    typeof value !== 'string'
+  ) {
     return null;
   }
 
   return value.trim();
 };
 
-const optionalText = (value) => {
-  const text = readText(value);
+const optionalText = (
+  value
+) => {
+  const text =
+    readText(
+      value
+    );
 
-  if (text === null) {
+  if (
+    text === null
+  ) {
     return null;
   }
 
@@ -47,7 +61,9 @@ const optionalText = (value) => {
     : text;
 };
 
-const isValidUuid = (value) => {
+const isValidUuid = (
+  value
+) => {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
   );
@@ -57,14 +73,42 @@ const validateOptionalString = (
   value,
   maxLength
 ) => {
-  if (value === null) {
+  if (
+    value === null
+  ) {
     return true;
   }
 
   return (
-    typeof value === 'string' &&
-    value.length <= maxLength
+    typeof value ===
+      'string' &&
+    value.length <=
+      maxLength
   );
+};
+
+const getAuditUsername = (
+  req
+) => {
+  if (
+    !req.auth ||
+    typeof req.auth.username !==
+      'string'
+  ) {
+    return null;
+  }
+
+  const username =
+    req.auth.username.trim();
+
+  if (
+    !username ||
+    username.length > 10
+  ) {
+    return null;
+  }
+
+  return username;
 };
 
 /* =========================================================
@@ -78,7 +122,10 @@ router.get(
 
   requireAuth,
 
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       if (
         !requireDatabase(
@@ -100,7 +147,8 @@ router.get(
         req.auth.roleid;
 
       const isAdmin =
-        roleId === 'ADMIN';
+        roleId ===
+        'ADMIN';
 
       /* ===============================================
          RETRIEVE AUTHORIZED PROJECTS
@@ -170,19 +218,23 @@ router.get(
             FROM "ProjectMaster" pm
 
             LEFT JOIN "ProjectType" pt
-              ON pt."ProjectType" =
-                 pm."ProjectType"
+              ON
+                pt."ProjectType" =
+                pm."ProjectType"
 
             LEFT JOIN "BusinessPartner" bp
-              ON bp."PartnerId" =
-                 pm."PartnerID"
+              ON
+                bp."PartnerId" =
+                pm."PartnerID"
 
             LEFT JOIN "ProjectVersion" pv
-              ON pv."ProjectCode" =
-                 pm."ProjectCode"
+              ON
+                pv."ProjectCode" =
+                pm."ProjectCode"
 
-              AND pv."VersionID" =
-                  pm."VersionID"
+              AND
+                pv."VersionID" =
+                pm."VersionID"
 
             WHERE
               (
@@ -195,11 +247,11 @@ router.get(
 
                   WHERE
                     aup."UserID" =
-                      $2::UUID
+                    $2::UUID
 
                     AND
                     aup."ProjectCode" =
-                      pm."ProjectCode"
+                    pm."ProjectCode"
                 )
               )
 
@@ -209,7 +261,7 @@ router.get(
               CASE
                 WHEN
                   pm."VersionID" ~
-                    '^[0-9]+$'
+                  '^[0-9]+$'
                 THEN
                   pm."VersionID"::INTEGER
                 ELSE
@@ -225,13 +277,16 @@ router.get(
         );
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         projects:
           result.rows
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
       return sendDatabaseError(
         res,
         error,
@@ -252,6 +307,10 @@ router.get(
    CREATES:
    1. ProjectMaster record
    2. Initial ProjectVersion record
+
+   AUDIT:
+   - CreatedBy = signed-in username
+   - UpdatedBy = signed-in username
 ========================================================= */
 
 router.post(
@@ -261,7 +320,10 @@ router.post(
 
   requireAdmin,
 
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     if (
       !requireDatabase(
         res,
@@ -275,24 +337,59 @@ router.post(
        VALIDATE REQUEST BODY
     =============================================== */
 
-    const body = req.body;
+    const body =
+      req.body;
 
     if (
       !body ||
-      typeof body !== 'object' ||
-      Array.isArray(body)
+      typeof body !==
+        'object' ||
+      Array.isArray(
+        body
+      )
     ) {
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'A valid project object is required.'
         });
     }
 
     /* ===============================================
-       READ VALUES
+       AUTHENTICATED AUDIT USER
+    =============================================== */
+
+    const auditUsername =
+      getAuditUsername(
+        req
+      );
+
+    if (
+      !auditUsername
+    ) {
+      return res
+        .status(400)
+        .json({
+          success:
+            false,
+
+          error:
+            'The signed-in username is invalid for Project audit fields. The username must contain 1 to 10 characters.'
+        });
+    }
+
+    const createdby =
+      auditUsername;
+
+    const updatedby =
+      auditUsername;
+
+    /* ===============================================
+       READ REQUEST VALUES
     =============================================== */
 
     const projectcode =
@@ -345,16 +442,6 @@ router.post(
         body.status
       );
 
-    const createdby =
-      optionalText(
-        body.createdby
-      );
-
-    const updatedby =
-      optionalText(
-        body.updatedby
-      );
-
     /* ===============================================
        REQUIRED VALUES
     =============================================== */
@@ -367,7 +454,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Project Code, Version ID and Project Name are required.'
         });
@@ -378,7 +467,8 @@ router.post(
     =============================================== */
 
     if (
-      typeof projectcode !== 'string' ||
+      typeof projectcode !==
+        'string' ||
       !/^[A-Z0-9]{1,10}$/.test(
         projectcode
       )
@@ -386,7 +476,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Project Code must contain 1–10 uppercase letters or numbers.'
         });
@@ -397,7 +489,8 @@ router.post(
     =============================================== */
 
     if (
-      typeof versionid !== 'string' ||
+      typeof versionid !==
+        'string' ||
       !/^[0-9]{1,2}$/.test(
         versionid
       )
@@ -405,7 +498,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Version ID must contain one or two digits.'
         });
@@ -416,13 +511,17 @@ router.post(
     =============================================== */
 
     if (
-      typeof projectname !== 'string' ||
-      projectname.length > 50
+      typeof projectname !==
+        'string' ||
+      projectname.length >
+        50
     ) {
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Project Name cannot exceed 50 characters.'
         });
@@ -441,7 +540,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Project Description cannot exceed 500 characters.'
         });
@@ -456,7 +557,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Project Type cannot exceed 2 characters.'
         });
@@ -471,7 +574,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Business Partner cannot exceed 10 characters.'
         });
@@ -486,7 +591,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Currency cannot exceed 3 characters.'
         });
@@ -501,7 +608,9 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Location cannot exceed 20 characters.'
         });
@@ -516,39 +625,11 @@ router.post(
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Region cannot exceed 20 characters.'
-        });
-    }
-
-    if (
-      !validateOptionalString(
-        createdby,
-        10
-      )
-    ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error:
-            'Created By cannot exceed 10 characters.'
-        });
-    }
-
-    if (
-      !validateOptionalString(
-        updatedby,
-        10
-      )
-    ) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          error:
-            'Updated By cannot exceed 10 characters.'
         });
     }
 
@@ -557,18 +638,23 @@ router.post(
     =============================================== */
 
     if (
-      status !== null &&
+      status !==
+        null &&
       ![
         'P',
         'A',
         'C',
         'X'
-      ].includes(status)
+      ].includes(
+        status
+      )
     ) {
       return res
         .status(400)
         .json({
-          success: false,
+          success:
+            false,
+
           error:
             'Invalid project status.'
         });
@@ -601,7 +687,8 @@ router.post(
             FROM "ProjectMaster"
 
             WHERE
-              "ProjectCode" = $1
+              "ProjectCode" =
+              $1
 
             LIMIT 1;
           `,
@@ -611,7 +698,10 @@ router.post(
         );
 
       if (
-        existingProject.rows.length > 0
+        existingProject
+          .rows
+          .length >
+        0
       ) {
         await client.query(
           'ROLLBACK'
@@ -620,7 +710,9 @@ router.post(
         return res
           .status(409)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project Code already exists. Use the project version functionality for an existing project.'
           });
@@ -639,7 +731,8 @@ router.post(
             FROM "ProjectVersion"
 
             WHERE
-              "ProjectCode" = $1
+              "ProjectCode" =
+              $1
 
             LIMIT 1;
           `,
@@ -649,7 +742,10 @@ router.post(
         );
 
       if (
-        existingVersion.rows.length > 0
+        existingVersion
+          .rows
+          .length >
+        0
       ) {
         await client.query(
           'ROLLBACK'
@@ -658,7 +754,9 @@ router.post(
         return res
           .status(409)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'A project version already exists for this Project Code.'
           });
@@ -832,7 +930,8 @@ router.post(
       return res
         .status(201)
         .json({
-          success: true,
+          success:
+            true,
 
           message:
             'Project saved successfully.',
@@ -844,13 +943,20 @@ router.post(
             versionResult.rows[0]
         });
 
-    } catch (error) {
-      if (client) {
+    } catch (
+      error
+    ) {
+      if (
+        client
+      ) {
         try {
           await client.query(
             'ROLLBACK'
           );
-        } catch (rollbackError) {
+
+        } catch (
+          rollbackError
+        ) {
           console.error(
             'Project creation rollback failed:',
             rollbackError.message
@@ -863,12 +969,15 @@ router.post(
       ============================================= */
 
       if (
-        error.code === '23505'
+        error.code ===
+        '23505'
       ) {
         return res
           .status(409)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'This project or project version already exists.'
           });
@@ -879,12 +988,15 @@ router.post(
       ============================================= */
 
       if (
-        error.code === '23503'
+        error.code ===
+        '23503'
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'One of the selected master data values is invalid.'
           });
@@ -895,12 +1007,15 @@ router.post(
       ============================================= */
 
       if (
-        error.code === '22001'
+        error.code ===
+        '22001'
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'One or more project field values exceed the database field length.'
           });
@@ -913,7 +1028,9 @@ router.post(
       );
 
     } finally {
-      if (client) {
+      if (
+        client
+      ) {
         client.release();
       }
     }
@@ -928,12 +1045,14 @@ router.post(
    ALLOWED ROLE:
    - ADMIN
 
-   READ-ONLY IDENTITY FIELDS:
+   READ-ONLY IDENTITY / AUDIT FIELDS:
    - ProjectID
    - ProjectCode
    - VersionID
+   - CreatedBy
+   - CreatedDate
 
-   EDITABLE FIELDS:
+   EDITABLE BUSINESS FIELDS:
    - ProjectName
    - ProjectDescription
    - ProjectType
@@ -942,8 +1061,9 @@ router.post(
    - Location
    - Region
    - Status
-   - CreatedBy
-   - UpdatedBy
+
+   AUTOMATIC AUDIT FIELD:
+   - UpdatedBy = signed-in username
 ========================================================= */
 
 router.put(
@@ -953,7 +1073,10 @@ router.put(
 
   requireAdmin,
 
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       if (
         !requireDatabase(
@@ -969,7 +1092,8 @@ router.put(
       =============================================== */
 
       const projectid =
-        req.params.projectid
+        req.params
+          .projectid
           ?.trim();
 
       if (
@@ -981,7 +1105,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'A valid Project ID is required.'
           });
@@ -996,15 +1122,43 @@ router.put(
 
       if (
         !body ||
-        typeof body !== 'object' ||
-        Array.isArray(body)
+        typeof body !==
+          'object' ||
+        Array.isArray(
+          body
+        )
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'A valid project object is required.'
+          });
+      }
+
+      /* ===============================================
+         AUTHENTICATED AUDIT USER
+      =============================================== */
+
+      const updatedby =
+        getAuditUsername(
+          req
+        );
+
+      if (
+        !updatedby
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            error:
+              'The signed-in username is invalid for Project audit fields. The username must contain 1 to 10 characters.'
           });
       }
 
@@ -1052,40 +1206,36 @@ router.put(
           body.status
         );
 
-      const createdby =
-        optionalText(
-          body.createdby
-        );
-
-      const updatedby =
-        optionalText(
-          body.updatedby
-        );
-
       /* ===============================================
          PROJECT NAME VALIDATION
       =============================================== */
 
       if (
         !projectname ||
-        typeof projectname !== 'string'
+        typeof projectname !==
+          'string'
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project Name is required.'
           });
       }
 
       if (
-        projectname.length > 50
+        projectname.length >
+        50
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project Name cannot exceed 50 characters.'
           });
@@ -1104,7 +1254,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project Description cannot exceed 500 characters.'
           });
@@ -1119,7 +1271,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project Type cannot exceed 2 characters.'
           });
@@ -1134,7 +1288,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Business Partner cannot exceed 10 characters.'
           });
@@ -1149,7 +1305,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Currency cannot exceed 3 characters.'
           });
@@ -1164,7 +1322,9 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Location cannot exceed 20 characters.'
           });
@@ -1179,39 +1339,11 @@ router.put(
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Region cannot exceed 20 characters.'
-          });
-      }
-
-      if (
-        !validateOptionalString(
-          createdby,
-          10
-        )
-      ) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'Created By cannot exceed 10 characters.'
-          });
-      }
-
-      if (
-        !validateOptionalString(
-          updatedby,
-          10
-        )
-      ) {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'Updated By cannot exceed 10 characters.'
           });
       }
 
@@ -1220,18 +1352,23 @@ router.put(
       =============================================== */
 
       if (
-        status !== null &&
+        status !==
+          null &&
         ![
           'P',
           'A',
           'C',
           'X'
-        ].includes(status)
+        ].includes(
+          status
+        )
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Invalid project status.'
           });
@@ -1240,8 +1377,11 @@ router.put(
       /* ===============================================
          UPDATE PROJECT MASTER
 
-         ProjectID, ProjectCode and VersionID
-         are intentionally NOT updated.
+         ProjectID, ProjectCode, VersionID,
+         CreatedBy and CreatedDate are intentionally
+         NOT updated.
+
+         UpdatedBy always comes from req.auth.username.
       =============================================== */
 
       const result =
@@ -1274,18 +1414,15 @@ router.put(
               "Status" =
                 $8,
 
-              "CreatedBy" =
-                $9,
-
               "UpdatedBy" =
-                $10,
+                $9,
 
               "UpdatedDate" =
                 NOW()
 
             WHERE
               "ProjectID" =
-                $11::UUID
+                $10::UUID
 
             RETURNING
               "ProjectID"
@@ -1345,7 +1482,6 @@ router.put(
             location,
             region,
             status,
-            createdby,
             updatedby,
             projectid
           ]
@@ -1356,12 +1492,15 @@ router.put(
       =============================================== */
 
       if (
-        result.rows.length === 0
+        result.rows.length ===
+        0
       ) {
         return res
           .status(404)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'Project was not found.'
           });
@@ -1372,7 +1511,8 @@ router.put(
       =============================================== */
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           'Project updated successfully.',
@@ -1381,18 +1521,23 @@ router.put(
           result.rows[0]
       });
 
-    } catch (error) {
+    } catch (
+      error
+    ) {
       /* =============================================
          FOREIGN KEY FAILURE
       ============================================= */
 
       if (
-        error.code === '23503'
+        error.code ===
+        '23503'
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'One of the selected master data values is invalid.'
           });
@@ -1403,12 +1548,15 @@ router.put(
       ============================================= */
 
       if (
-        error.code === '22001'
+        error.code ===
+        '22001'
       ) {
         return res
           .status(400)
           .json({
-            success: false,
+            success:
+              false,
+
             error:
               'One or more project field values exceed the database field length.'
           });

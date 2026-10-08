@@ -12,7 +12,9 @@ import {
    INITIAL PROJECT FORM
 ========================================================= */
 
-const initialForm = {
+const createInitialForm = (
+  username = ''
+) => ({
   projectcode: '',
   versionid: '',
   projectname: '',
@@ -23,9 +25,9 @@ const initialForm = {
   location: '',
   region: '',
   status: '',
-  createdby: '',
-  updatedby: ''
-};
+  createdby: username,
+  updatedby: username
+});
 
 const projectStatuses = [
   {
@@ -50,7 +52,9 @@ const projectStatuses = [
    NORMALIZE PROJECT DATA
 ========================================================= */
 
-const projectToForm = (project) => ({
+const projectToForm = (
+  project
+) => ({
   projectcode:
     project?.projectcode || '',
 
@@ -92,17 +96,27 @@ const projectToForm = (project) => ({
    VERSION SORTING
 ========================================================= */
 
-const versionNumber = (value) => {
+const versionNumber = (
+  value
+) => {
   const parsed =
     Number.parseInt(
-      String(value || ''),
+      String(
+        value || ''
+      ),
       10
     );
 
-  return Number.isNaN(parsed)
+  return Number.isNaN(
+    parsed
+  )
     ? -1
     : parsed;
 };
+
+/* =========================================================
+   COMPONENT
+========================================================= */
 
 function ProjectMasterPage() {
   /* =========================================================
@@ -129,6 +143,11 @@ function ProjectMasterPage() {
     setCurrencies
   ] = useState([]);
 
+  const [
+    currentUsername,
+    setCurrentUsername
+  ] = useState('');
+
   /* =========================================================
      FORM STATE
   ========================================================= */
@@ -136,12 +155,16 @@ function ProjectMasterPage() {
   const [
     form,
     setForm
-  ] = useState(initialForm);
+  ] = useState(
+    createInitialForm()
+  );
 
   const [
     originalForm,
     setOriginalForm
-  ] = useState(initialForm);
+  ] = useState(
+    createInitialForm()
+  );
 
   const [
     selectedProjectId,
@@ -200,14 +223,102 @@ function ProjectMasterPage() {
   const isExistingProject =
     mode === 'edit';
 
+  const editableFormData =
+    useMemo(
+      () => ({
+        projectcode:
+          form.projectcode,
+
+        versionid:
+          form.versionid,
+
+        projectname:
+          form.projectname,
+
+        projectdescription:
+          form.projectdescription,
+
+        projecttype:
+          form.projecttype,
+
+        partnerid:
+          form.partnerid,
+
+        currency:
+          form.currency,
+
+        location:
+          form.location,
+
+        region:
+          form.region,
+
+        status:
+          form.status
+      }),
+      [
+        form
+      ]
+    );
+
+  const originalEditableFormData =
+    useMemo(
+      () => ({
+        projectcode:
+          originalForm.projectcode,
+
+        versionid:
+          originalForm.versionid,
+
+        projectname:
+          originalForm.projectname,
+
+        projectdescription:
+          originalForm.projectdescription,
+
+        projecttype:
+          originalForm.projecttype,
+
+        partnerid:
+          originalForm.partnerid,
+
+        currency:
+          originalForm.currency,
+
+        location:
+          originalForm.location,
+
+        region:
+          originalForm.region,
+
+        status:
+          originalForm.status
+      }),
+      [
+        originalForm
+      ]
+    );
+
+  /*
+   * Audit fields are intentionally excluded from
+   * unsaved-change detection because they are
+   * controlled automatically by the server.
+   */
+
   const hasUnsavedChanges =
-    useMemo(() => {
-      return JSON.stringify(form) !==
-        JSON.stringify(originalForm);
-    }, [
-      form,
-      originalForm
-    ]);
+    useMemo(
+      () =>
+        JSON.stringify(
+          editableFormData
+        ) !==
+        JSON.stringify(
+          originalEditableFormData
+        ),
+      [
+        editableFormData,
+        originalEditableFormData
+      ]
+    );
 
   /* =========================================================
      UNIQUE PROJECT CODES
@@ -222,12 +333,18 @@ function ProjectMasterPage() {
               (project) =>
                 project.projectcode
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
         )
       ].sort(
         (a, b) =>
-          String(a).localeCompare(
-            String(b)
+          String(
+            a
+          ).localeCompare(
+            String(
+              b
+            )
           )
       );
     }, [
@@ -266,66 +383,116 @@ function ProjectMasterPage() {
 
   const loadAllData =
     async () => {
-      setDropdownLoading(true);
+      setDropdownLoading(
+        true
+      );
 
       try {
         const [
           projectsResponse,
           projectTypesResponse,
           businessPartnersResponse,
-          currenciesResponse
+          currenciesResponse,
+          authResponse
         ] = await Promise.all([
-          fetch('/api/projects'),
-          fetch('/api/project-types'),
-          fetch('/api/business-partners'),
-          fetch('/api/currencies')
+          fetch(
+            '/api/projects'
+          ),
+
+          fetch(
+            '/api/project-types'
+          ),
+
+          fetch(
+            '/api/business-partners'
+          ),
+
+          fetch(
+            '/api/currencies'
+          ),
+
+          fetch(
+            '/api/auth/me',
+            {
+              credentials:
+                'same-origin',
+              cache:
+                'no-store'
+            }
+          )
         ]);
 
         if (
           !projectsResponse.ok ||
           !projectTypesResponse.ok ||
           !businessPartnersResponse.ok ||
-          !currenciesResponse.ok
+          !currenciesResponse.ok ||
+          !authResponse.ok
         ) {
           throw new Error(
             'Failed to load Project Master data.'
           );
         }
 
-        const projectsResult =
-          await projectsResponse.json();
-
-        const projectTypesResult =
-          await projectTypesResponse.json();
-
-        const businessPartnersResult =
-          await businessPartnersResponse.json();
-
-        const currenciesResult =
-          await currenciesResponse.json();
+        const [
+          projectsResult,
+          projectTypesResult,
+          businessPartnersResult,
+          currenciesResult,
+          authResult
+        ] = await Promise.all([
+          projectsResponse.json(),
+          projectTypesResponse.json(),
+          businessPartnersResponse.json(),
+          currenciesResponse.json(),
+          authResponse.json()
+        ]);
 
         const loadedProjects =
-          projectsResult.projects || [];
+          projectsResult.projects ||
+          [];
+
+        const username =
+          authResult.user
+            ?.username ||
+          '';
 
         setProjects(
           loadedProjects
         );
 
         setProjectTypes(
-          projectTypesResult.projectTypes || []
+          projectTypesResult
+            .projectTypes ||
+          []
         );
 
         setBusinessPartners(
-          businessPartnersResult.businessPartners || []
+          businessPartnersResult
+            .businessPartners ||
+          []
         );
 
         setCurrencies(
-          currenciesResult.currencies || []
+          currenciesResult
+            .currencies ||
+          []
         );
 
-        return loadedProjects;
+        setCurrentUsername(
+          username
+        );
 
-      } catch (error) {
+        return {
+          projects:
+            loadedProjects,
+
+          username
+        };
+
+      } catch (
+        error
+      ) {
         showAlert(
           'error',
           'Unable to Load Projects',
@@ -333,10 +500,15 @@ function ProjectMasterPage() {
             'Failed to load Project Master data.'
         );
 
-        return [];
+        return {
+          projects: [],
+          username: ''
+        };
 
       } finally {
-        setDropdownLoading(false);
+        setDropdownLoading(
+          false
+        );
       }
     };
 
@@ -361,14 +533,19 @@ function ProjectMasterPage() {
     }
 
     const handleKeyDown =
-      (event) => {
+      (
+        event
+      ) => {
         if (
-          event.key !== 'Escape'
+          event.key !==
+          'Escape'
         ) {
           return;
         }
 
-        if (alert.open) {
+        if (
+          alert.open
+        ) {
           closeAlert();
           return;
         }
@@ -417,7 +594,8 @@ function ProjectMasterPage() {
         );
 
       if (
-        matchingProjects.length === 0
+        matchingProjects.length ===
+        0
       ) {
         return null;
       }
@@ -429,14 +607,19 @@ function ProjectMasterPage() {
             'A'
         );
 
-      if (activeProject) {
+      if (
+        activeProject
+      ) {
         return activeProject;
       }
 
       return [
         ...matchingProjects
       ].sort(
-        (a, b) =>
+        (
+          a,
+          b
+        ) =>
           versionNumber(
             b.versionid
           ) -
@@ -461,7 +644,9 @@ function ProjectMasterPage() {
           sourceProjects
         );
 
-      if (!project) {
+      if (
+        !project
+      ) {
         showAlert(
           'error',
           'Project Not Found',
@@ -480,7 +665,9 @@ function ProjectMasterPage() {
         project.projectid
       );
 
-      setMode('edit');
+      setMode(
+        'edit'
+      );
 
       setForm(
         nextForm
@@ -496,7 +683,9 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const handleProjectCodeSelection =
-    (event) => {
+    (
+      event
+    ) => {
       const projectCode =
         event.target.value;
 
@@ -507,8 +696,12 @@ function ProjectMasterPage() {
         return;
       }
 
-      if (!projectCode) {
-        if (hasUnsavedChanges) {
+      if (
+        !projectCode
+      ) {
+        if (
+          hasUnsavedChanges
+        ) {
           setConfirmation({
             open: true,
             type: 'clear',
@@ -523,7 +716,9 @@ function ProjectMasterPage() {
         return;
       }
 
-      if (hasUnsavedChanges) {
+      if (
+        hasUnsavedChanges
+      ) {
         setConfirmation({
           open: true,
           type: 'switch',
@@ -543,16 +738,22 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const handleChange =
-    (event) => {
+    (
+      event
+    ) => {
       const {
         name,
         value
-      } = event.target;
+      } =
+        event.target;
 
       setForm(
-        (previousForm) => ({
+        (
+          previousForm
+        ) => ({
           ...previousForm,
-          [name]: value
+          [name]:
+            value
         })
       );
     };
@@ -562,13 +763,18 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const handleNewProjectCodeChange =
-    (event) => {
-      if (!isCreateMode) {
+    (
+      event
+    ) => {
+      if (
+        !isCreateMode
+      ) {
         return;
       }
 
       const value =
-        event.target.value
+        event.target
+          .value
           .toUpperCase()
           .replace(
             /[^A-Z0-9]/g,
@@ -580,8 +786,11 @@ function ProjectMasterPage() {
           );
 
       setForm(
-        (previousForm) => ({
+        (
+          previousForm
+        ) => ({
           ...previousForm,
+
           projectcode:
             value
         })
@@ -593,13 +802,18 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const handleVersionChange =
-    (event) => {
-      if (!isCreateMode) {
+    (
+      event
+    ) => {
+      if (
+        !isCreateMode
+      ) {
         return;
       }
 
       const value =
-        event.target.value
+        event.target
+          .value
           .replace(
             /[^0-9]/g,
             ''
@@ -610,13 +824,56 @@ function ProjectMasterPage() {
           );
 
       setForm(
-        (previousForm) => ({
+        (
+          previousForm
+        ) => ({
           ...previousForm,
+
           versionid:
             value
         })
       );
     };
+
+  /* =========================================================
+     API PAYLOAD
+
+     CreatedBy and UpdatedBy are intentionally excluded.
+     The backend gets them from req.auth.username.
+  ========================================================= */
+
+  const createProjectPayload =
+    () => ({
+      projectcode:
+        form.projectcode.trim(),
+
+      versionid:
+        form.versionid.trim(),
+
+      projectname:
+        form.projectname.trim(),
+
+      projectdescription:
+        form.projectdescription,
+
+      projecttype:
+        form.projecttype,
+
+      partnerid:
+        form.partnerid,
+
+      currency:
+        form.currency,
+
+      location:
+        form.location,
+
+      region:
+        form.region,
+
+      status:
+        form.status
+    });
 
   /* =========================================================
      CREATE PROJECT
@@ -638,7 +895,7 @@ function ProjectMasterPage() {
 
             body:
               JSON.stringify(
-                form
+                createProjectPayload()
               )
           }
         );
@@ -646,23 +903,27 @@ function ProjectMasterPage() {
       const result =
         await response.json();
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         throw new Error(
           result.error ||
             'Failed to save project.'
         );
       }
 
-      const refreshedProjects =
+      const refreshedData =
         await loadAllData();
 
       const savedProject =
         getProjectForCode(
           form.projectcode,
-          refreshedProjects
+          refreshedData.projects
         );
 
-      if (savedProject) {
+      if (
+        savedProject
+      ) {
         const savedForm =
           projectToForm(
             savedProject
@@ -672,7 +933,9 @@ function ProjectMasterPage() {
           savedProject.projectid
         );
 
-        setMode('edit');
+        setMode(
+          'edit'
+        );
 
         setForm(
           savedForm
@@ -696,7 +959,9 @@ function ProjectMasterPage() {
 
   const updateProject =
     async () => {
-      if (!selectedProjectId) {
+      if (
+        !selectedProjectId
+      ) {
         throw new Error(
           'Please select a Project Code.'
         );
@@ -718,7 +983,7 @@ function ProjectMasterPage() {
 
             body:
               JSON.stringify(
-                form
+                createProjectPayload()
               )
           }
         );
@@ -726,7 +991,9 @@ function ProjectMasterPage() {
       const result =
         await response.json();
 
-      if (!response.ok) {
+      if (
+        !response.ok
+      ) {
         throw new Error(
           result.error ||
             'Failed to update project.'
@@ -750,15 +1017,19 @@ function ProjectMasterPage() {
       );
 
       setProjects(
-        (currentProjects) =>
+        (
+          currentProjects
+        ) =>
           currentProjects.map(
-            (project) =>
+            (
+              project
+            ) =>
               String(
                 project.projectid
               ) ===
-                String(
-                  selectedProjectId
-                )
+              String(
+                selectedProjectId
+              )
                 ? {
                     ...project,
                     ...updatedProject
@@ -779,7 +1050,9 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const handleSubmit =
-    async (event) => {
+    async (
+      event
+    ) => {
       event.preventDefault();
 
       if (
@@ -802,27 +1075,38 @@ function ProjectMasterPage() {
         return;
       }
 
-      setLoading(true);
+      setLoading(
+        true
+      );
 
       try {
-        if (isCreateMode) {
+        if (
+          isCreateMode
+        ) {
           await createProject();
+
         } else {
           await updateProject();
         }
 
-      } catch (error) {
+      } catch (
+        error
+      ) {
         showAlert(
           'error',
+
           isCreateMode
             ? 'Project Save Failed'
             : 'Project Update Failed',
+
           error.message ||
             'Something went wrong while saving the project.'
         );
 
       } finally {
-        setLoading(false);
+        setLoading(
+          false
+        );
       }
     };
 
@@ -832,17 +1116,24 @@ function ProjectMasterPage() {
 
   const clearProjectForm =
     () => {
-      setSelectedProjectId('');
+      const emptyForm =
+        createInitialForm();
 
-      setMode('view');
+      setSelectedProjectId(
+        ''
+      );
 
-      setForm({
-        ...initialForm
-      });
+      setMode(
+        'view'
+      );
 
-      setOriginalForm({
-        ...initialForm
-      });
+      setForm(
+        emptyForm
+      );
+
+      setOriginalForm(
+        emptyForm
+      );
 
       setConfirmation({
         open: false,
@@ -857,17 +1148,26 @@ function ProjectMasterPage() {
 
   const startNewProject =
     () => {
-      setSelectedProjectId('');
+      const newForm =
+        createInitialForm(
+          currentUsername
+        );
 
-      setMode('create');
+      setSelectedProjectId(
+        ''
+      );
 
-      setForm({
-        ...initialForm
-      });
+      setMode(
+        'create'
+      );
 
-      setOriginalForm({
-        ...initialForm
-      });
+      setForm(
+        newForm
+      );
+
+      setOriginalForm(
+        newForm
+      );
 
       setConfirmation({
         open: false,
@@ -882,11 +1182,15 @@ function ProjectMasterPage() {
 
   const handleNewProject =
     () => {
-      if (loading) {
+      if (
+        loading
+      ) {
         return;
       }
 
-      if (hasUnsavedChanges) {
+      if (
+        hasUnsavedChanges
+      ) {
         setConfirmation({
           open: true,
           type: 'new',
@@ -956,34 +1260,28 @@ function ProjectMasterPage() {
 
   const confirmationTitle =
     confirmation.type ===
-      'switch'
+    'switch'
       ? 'Switch Project?'
       : confirmation.type ===
-          'new'
+        'new'
         ? 'Start a New Project?'
         : 'Clear Project?';
 
   const confirmationDescription =
     confirmation.type ===
-      'switch'
-      ? (
-          'You have unsaved changes. Selecting another Project Code will discard those changes.'
-        )
+    'switch'
+      ? 'You have unsaved changes. Selecting another Project Code will discard those changes.'
       : confirmation.type ===
-          'new'
-        ? (
-            'You have unsaved project information. Starting a new project will discard those changes.'
-          )
-        : (
-            'You have unsaved project information. Clearing the selection will discard those changes.'
-          );
+        'new'
+        ? 'You have unsaved project information. Starting a new project will discard those changes.'
+        : 'You have unsaved project information. Clearing the selection will discard those changes.';
 
   const confirmationButtonText =
     confirmation.type ===
-      'switch'
+    'switch'
       ? 'Discard & Switch'
       : confirmation.type ===
-          'new'
+        'new'
         ? 'Discard & Start New'
         : 'Discard & Clear';
 
@@ -992,7 +1290,8 @@ function ProjectMasterPage() {
   ========================================================= */
 
   const alertStyle =
-    alert.type === 'success'
+    alert.type ===
+    'success'
       ? {
           icon: '✓',
           background:
@@ -1000,7 +1299,8 @@ function ProjectMasterPage() {
           color:
             '#166534'
         }
-      : alert.type === 'error'
+      : alert.type ===
+        'error'
         ? {
             icon: '✕',
             background:
@@ -1053,9 +1353,7 @@ function ProjectMasterPage() {
         >
           <div className="form-grid">
 
-            {/* =================================================
-                PROJECT CODE
-            ================================================= */}
+            {/* PROJECT CODE */}
 
             <label>
               Project Code *
@@ -1115,9 +1413,7 @@ function ProjectMasterPage() {
               )}
             </label>
 
-            {/* =================================================
-                VERSION ID
-            ================================================= */}
+            {/* VERSION ID */}
 
             <label>
               Version ID *
@@ -1135,15 +1431,14 @@ function ProjectMasterPage() {
                 disabled={
                   loading ||
                   isExistingProject ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
                 required
               />
             </label>
 
-            {/* =================================================
-                PROJECT NAME
-            ================================================= */}
+            {/* PROJECT NAME */}
 
             <label className="full-width">
               Project Name *
@@ -1160,15 +1455,14 @@ function ProjectMasterPage() {
                 placeholder="Enter project name"
                 disabled={
                   loading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
                 required
               />
             </label>
 
-            {/* =================================================
-                PROJECT DESCRIPTION
-            ================================================= */}
+            {/* PROJECT DESCRIPTION */}
 
             <label className="full-width">
               Project Description
@@ -1186,14 +1480,13 @@ function ProjectMasterPage() {
                 rows={4}
                 disabled={
                   loading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               />
             </label>
 
-            {/* =================================================
-                PROJECT TYPE
-            ================================================= */}
+            {/* PROJECT TYPE */}
 
             <label>
               Project Type
@@ -1209,7 +1502,8 @@ function ProjectMasterPage() {
                 disabled={
                   loading ||
                   dropdownLoading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               >
                 <option value="">
@@ -1217,7 +1511,9 @@ function ProjectMasterPage() {
                 </option>
 
                 {projectTypes.map(
-                  (type) => (
+                  (
+                    type
+                  ) => (
                     <option
                       key={
                         type.projecttype
@@ -1235,9 +1531,7 @@ function ProjectMasterPage() {
               </select>
             </label>
 
-            {/* =================================================
-                BUSINESS PARTNER
-            ================================================= */}
+            {/* BUSINESS PARTNER */}
 
             <label>
               Business Partner
@@ -1253,7 +1547,8 @@ function ProjectMasterPage() {
                 disabled={
                   loading ||
                   dropdownLoading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               >
                 <option value="">
@@ -1261,7 +1556,9 @@ function ProjectMasterPage() {
                 </option>
 
                 {businessPartners.map(
-                  (partner) => (
+                  (
+                    partner
+                  ) => (
                     <option
                       key={
                         partner.partnerid
@@ -1279,9 +1576,7 @@ function ProjectMasterPage() {
               </select>
             </label>
 
-            {/* =================================================
-                CURRENCY
-            ================================================= */}
+            {/* CURRENCY */}
 
             <label>
               Currency
@@ -1297,7 +1592,8 @@ function ProjectMasterPage() {
                 disabled={
                   loading ||
                   dropdownLoading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               >
                 <option value="">
@@ -1305,7 +1601,9 @@ function ProjectMasterPage() {
                 </option>
 
                 {currencies.map(
-                  (currency) => (
+                  (
+                    currency
+                  ) => (
                     <option
                       key={
                         currency.currcode
@@ -1323,9 +1621,7 @@ function ProjectMasterPage() {
               </select>
             </label>
 
-            {/* =================================================
-                STATUS
-            ================================================= */}
+            {/* STATUS */}
 
             <label>
               Status
@@ -1340,7 +1636,8 @@ function ProjectMasterPage() {
                 }
                 disabled={
                   loading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               >
                 <option value="">
@@ -1348,7 +1645,9 @@ function ProjectMasterPage() {
                 </option>
 
                 {projectStatuses.map(
-                  (status) => (
+                  (
+                    status
+                  ) => (
                     <option
                       key={
                         status.code
@@ -1366,9 +1665,7 @@ function ProjectMasterPage() {
               </select>
             </label>
 
-            {/* =================================================
-                LOCATION
-            ================================================= */}
+            {/* LOCATION */}
 
             <label>
               Location
@@ -1385,14 +1682,13 @@ function ProjectMasterPage() {
                 placeholder="e.g. Colombo"
                 disabled={
                   loading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               />
             </label>
 
-            {/* =================================================
-                REGION
-            ================================================= */}
+            {/* REGION */}
 
             <label>
               Region
@@ -1409,56 +1705,57 @@ function ProjectMasterPage() {
                 placeholder="e.g. APAC"
                 disabled={
                   loading ||
-                  mode === 'view'
+                  mode ===
+                    'view'
                 }
               />
             </label>
 
-            {/* =================================================
-                CREATED BY
-            ================================================= */}
+            {/* CREATED BY */}
 
             <label>
               Created By
 
               <input
                 name="createdby"
-                maxLength={10}
                 value={
                   form.createdby
                 }
-                onChange={
-                  handleChange
+                placeholder={
+                  isCreateMode
+                    ? 'Automatically set from login'
+                    : 'Created by'
                 }
-                placeholder="Created by"
+                readOnly
                 disabled={
-                  loading ||
-                  mode === 'view'
+                  mode ===
+                  'view'
                 }
+                title="Automatically controlled by the signed-in user"
               />
             </label>
 
-            {/* =================================================
-                UPDATED BY
-            ================================================= */}
+            {/* UPDATED BY */}
 
             <label>
               Updated By
 
               <input
                 name="updatedby"
-                maxLength={10}
                 value={
                   form.updatedby
                 }
-                onChange={
-                  handleChange
+                placeholder={
+                  isCreateMode
+                    ? 'Automatically set from login'
+                    : 'Updated by'
                 }
-                placeholder="Updated by"
+                readOnly
                 disabled={
-                  loading ||
-                  mode === 'view'
+                  mode ===
+                  'view'
                 }
+                title="Automatically controlled by the signed-in user"
               />
             </label>
           </div>
@@ -1486,7 +1783,8 @@ function ProjectMasterPage() {
               disabled={
                 loading ||
                 dropdownLoading ||
-                mode === 'view' ||
+                mode ===
+                  'view' ||
                 (
                   isExistingProject &&
                   !hasUnsavedChanges
@@ -1533,9 +1831,23 @@ function ProjectMasterPage() {
                 '12px'
             }}
           >
-            Project Code and Version ID are protected
-            identity fields. Other project details can
-            be updated.
+            Project Code, Version ID, Created By and
+            Created Date are protected fields. Updated By
+            is automatically set to the signed-in user
+            whenever the project is updated.
+          </p>
+        )}
+
+        {isCreateMode && (
+          <p
+            className="page-description"
+            style={{
+              marginTop:
+                '12px'
+            }}
+          >
+            Created By and Updated By are automatically
+            assigned using the signed-in username.
           </p>
         )}
       </div>
@@ -1548,7 +1860,9 @@ function ProjectMasterPage() {
         <div
           role="presentation"
           onMouseDown={
-            (event) => {
+            (
+              event
+            ) => {
               if (
                 event.target ===
                 event.currentTarget
@@ -1695,7 +2009,9 @@ function ProjectMasterPage() {
         <div
           role="presentation"
           onMouseDown={
-            (event) => {
+            (
+              event
+            ) => {
               if (
                 event.target ===
                 event.currentTarget

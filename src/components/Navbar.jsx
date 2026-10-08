@@ -125,7 +125,7 @@ function Navbar({
           </span>
         </NavLink>
 
-        {/* RESOURCE + FINANCIAL MASTER */}
+        {/* RESOURCE MASTER */}
 
         <NavLink
           to="/resource-master"
@@ -138,7 +138,7 @@ function Navbar({
           </span>
 
           <span>
-            Resource & Financials
+            Resource Master
           </span>
         </NavLink>
 

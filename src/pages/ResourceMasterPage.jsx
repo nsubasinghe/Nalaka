@@ -24,18 +24,6 @@ const initialResourceForm = {
   cost2co: ''
 };
 
-/* =========================================================
-   INITIAL FINANCIAL FORM
-========================================================= */
-
-const initialFinancialForm = {
-  projectkey: '',
-  budgetamount: '',
-  actualcost: '',
-  billingamount: '',
-  currcode: ''
-};
-
 function ResourceMasterPage() {
   /* =========================================================
      MASTER DATA
@@ -59,16 +47,6 @@ function ResourceMasterPage() {
   const [
     resources,
     setResources
-  ] = useState([]);
-
-  const [
-    projects,
-    setProjects
-  ] = useState([]);
-
-  const [
-    financialRecords,
-    setFinancialRecords
   ] = useState([]);
 
   /* =========================================================
@@ -95,29 +73,6 @@ function ResourceMasterPage() {
   ] = useState('view');
 
   /* =========================================================
-     FINANCIAL STATE
-  ========================================================= */
-
-  const [
-    financialForm,
-    setFinancialForm
-  ] = useState(
-    initialFinancialForm
-  );
-
-  const [
-    originalFinancialForm,
-    setOriginalFinancialForm
-  ] = useState(
-    initialFinancialForm
-  );
-
-  const [
-    financialRecordExists,
-    setFinancialRecordExists
-  ] = useState(false);
-
-  /* =========================================================
      LOADING
   ========================================================= */
 
@@ -129,11 +84,6 @@ function ResourceMasterPage() {
   const [
     resourceProcessing,
     setResourceProcessing
-  ] = useState(false);
-
-  const [
-    financialProcessing,
-    setFinancialProcessing
   ] = useState(false);
 
   /* =========================================================
@@ -188,37 +138,6 @@ function ResourceMasterPage() {
     ]);
 
   /* =========================================================
-     DERIVED FINANCIAL STATE
-  ========================================================= */
-
-  const financialHasChanges =
-    useMemo(() => {
-      return (
-        JSON.stringify(
-          financialForm
-        ) !==
-        JSON.stringify(
-          originalFinancialForm
-        )
-      );
-    }, [
-      financialForm,
-      originalFinancialForm
-    ]);
-
-  const selectedFinancialProject =
-    useMemo(() => {
-      return projects.find(
-        (project) =>
-          `${project.projectcode}::${project.versionid}` ===
-          financialForm.projectkey
-      );
-    }, [
-      projects,
-      financialForm.projectkey
-    ]);
-
-  /* =========================================================
      ALERT HELPERS
   ========================================================= */
 
@@ -257,27 +176,22 @@ function ResourceMasterPage() {
           resourceTypesResponse,
           projectRolesResponse,
           currenciesResponse,
-          resourcesResponse,
-          projectsResponse,
-          financialResponse
+          resourcesResponse
         ] = await Promise.all([
           fetch(
             '/api/resource-types'
           ),
+
           fetch(
             '/api/project-roles'
           ),
+
           fetch(
             '/api/currencies'
           ),
+
           fetch(
             '/api/resources'
-          ),
-          fetch(
-            '/api/projects'
-          ),
-          fetch(
-            '/api/project-fi'
           )
         ]);
 
@@ -285,16 +199,12 @@ function ResourceMasterPage() {
           resourceTypesResult,
           projectRolesResult,
           currenciesResult,
-          resourcesResult,
-          projectsResult,
-          financialResult
+          resourcesResult
         ] = await Promise.all([
           resourceTypesResponse.json(),
           projectRolesResponse.json(),
           currenciesResponse.json(),
-          resourcesResponse.json(),
-          projectsResponse.json(),
-          financialResponse.json()
+          resourcesResponse.json()
         ]);
 
         if (
@@ -333,30 +243,8 @@ function ResourceMasterPage() {
           );
         }
 
-        if (
-          !projectsResponse.ok
-        ) {
-          throw new Error(
-            projectsResult.error ||
-              'Failed to load Projects.'
-          );
-        }
-
-        if (
-          !financialResponse.ok
-        ) {
-          throw new Error(
-            financialResult.error ||
-              'Failed to load Project Financial Information.'
-          );
-        }
-
         const loadedResources =
           resourcesResult.resources ||
-          [];
-
-        const loadedFinancialRecords =
-          financialResult.projectFinancials ||
           [];
 
         setResourceTypes(
@@ -378,34 +266,21 @@ function ResourceMasterPage() {
           loadedResources
         );
 
-        setProjects(
-          projectsResult.projects ||
-          []
-        );
-
-        setFinancialRecords(
-          loadedFinancialRecords
-        );
-
         return {
           resources:
-            loadedResources,
-
-          financialRecords:
-            loadedFinancialRecords
+            loadedResources
         };
 
       } catch (error) {
         showAlert(
           'error',
-          'Unable to Load Data',
+          'Unable to Load Resource Data',
           error.message ||
-            'Failed to load Resource and Financial data.'
+            'Failed to load Resource Master data.'
         );
 
         return {
-          resources: [],
-          financialRecords: []
+          resources: []
         };
 
       } finally {
@@ -422,7 +297,7 @@ function ResourceMasterPage() {
   }, []);
 
   /* =========================================================
-     ESCAPE
+     ESCAPE KEY
   ========================================================= */
 
   useEffect(() => {
@@ -442,7 +317,9 @@ function ResourceMasterPage() {
           return;
         }
 
-        if (alert.open) {
+        if (
+          alert.open
+        ) {
           closeAlert();
           return;
         }
@@ -489,7 +366,9 @@ function ResourceMasterPage() {
             )
         );
 
-      if (!resource) {
+      if (
+        !resource
+      ) {
         setResourceForm({
           ...initialResourceForm
         });
@@ -566,6 +445,13 @@ function ResourceMasterPage() {
         event.target.value;
 
       if (
+        resourceId ===
+        resourceForm.resourceid
+      ) {
+        return;
+      }
+
+      if (
         resourceHasChanges
       ) {
         setConfirmation({
@@ -577,7 +463,9 @@ function ResourceMasterPage() {
         return;
       }
 
-      if (!resourceId) {
+      if (
+        !resourceId
+      ) {
         resetResourceToView();
         return;
       }
@@ -596,7 +484,8 @@ function ResourceMasterPage() {
       const {
         name,
         value
-      } = event.target;
+      } =
+        event.target;
 
       setResourceForm(
         (previous) => ({
@@ -756,6 +645,52 @@ function ResourceMasterPage() {
           'error',
           'Internal Role Required',
           'Internal Role is required.'
+        );
+
+        return false;
+      }
+
+      if (
+        resourceForm.billrate !==
+          '' &&
+        (
+          Number.isNaN(
+            Number(
+              resourceForm.billrate
+            )
+          ) ||
+          Number(
+            resourceForm.billrate
+          ) < 0
+        )
+      ) {
+        showAlert(
+          'error',
+          'Invalid Bill Rate',
+          'Bill Rate must be a valid non-negative number.'
+        );
+
+        return false;
+      }
+
+      if (
+        resourceForm.cost2co !==
+          '' &&
+        (
+          Number.isNaN(
+            Number(
+              resourceForm.cost2co
+            )
+          ) ||
+          Number(
+            resourceForm.cost2co
+          ) < 0
+        )
+      ) {
+        showAlert(
+          'error',
+          'Invalid Cost to Company',
+          'Cost to Company must be a valid non-negative number.'
         );
 
         return false;
@@ -999,428 +934,6 @@ function ResourceMasterPage() {
     };
 
   /* =========================================================
-     FINANCIAL PROJECT CHANGE
-  ========================================================= */
-
-  const handleFinancialProjectChange =
-    (event) => {
-      const projectkey =
-        event.target.value;
-
-      const project =
-        projects.find(
-          (item) =>
-            `${item.projectcode}::${item.versionid}` ===
-            projectkey
-        );
-
-      const existingRecord =
-        financialRecords.find(
-          (record) =>
-            record.projectcode ===
-              project?.projectcode &&
-            record.versionid ===
-              project?.versionid
-        );
-
-      const nextForm = {
-        projectkey,
-
-        budgetamount:
-          existingRecord
-            ?.budgetamount ??
-          '',
-
-        actualcost:
-          existingRecord
-            ?.actualcost ??
-          '',
-
-        billingamount:
-          existingRecord
-            ?.billingamount ??
-          '',
-
-        currcode:
-          existingRecord
-            ?.currcode ||
-          project?.currency ||
-          ''
-      };
-
-      setFinancialForm(
-        nextForm
-      );
-
-      setOriginalFinancialForm(
-        nextForm
-      );
-
-      setFinancialRecordExists(
-        Boolean(
-          existingRecord
-        )
-      );
-    };
-
-  /* =========================================================
-     FINANCIAL FIELD CHANGE
-  ========================================================= */
-
-  const handleFinancialChange =
-    (event) => {
-      const {
-        name,
-        value
-      } = event.target;
-
-      setFinancialForm(
-        (previous) => ({
-          ...previous,
-          [name]:
-            value
-        })
-      );
-    };
-
-  /* =========================================================
-     FINANCIAL SAVE / UPDATE
-  ========================================================= */
-
-  const handleFinancialSubmit =
-    async (event) => {
-      event.preventDefault();
-
-      if (
-        loading ||
-        financialProcessing
-      ) {
-        return;
-      }
-
-      if (
-        !selectedFinancialProject
-      ) {
-        showAlert(
-          'error',
-          'Project Required',
-          'Please select a Project and Version.'
-        );
-
-        return;
-      }
-
-      if (
-        !financialForm.currcode
-      ) {
-        showAlert(
-          'error',
-          'Currency Required',
-          'Currency is required.'
-        );
-
-        return;
-      }
-
-      if (
-        financialRecordExists &&
-        !financialHasChanges
-      ) {
-        showAlert(
-          'info',
-          'No Changes',
-          'No Project Financial changes have been made.'
-        );
-
-        return;
-      }
-
-      setFinancialProcessing(
-        true
-      );
-
-      try {
-        const response =
-          await authenticatedFetch(
-            '/api/project-fi',
-            {
-              method:
-                'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify({
-                  projectcode:
-                    selectedFinancialProject.projectcode,
-
-                  versionid:
-                    selectedFinancialProject.versionid,
-
-                  budgetamount:
-                    financialForm.budgetamount ===
-                    ''
-                      ? null
-                      : Number(
-                          financialForm.budgetamount
-                        ),
-
-                  actualcost:
-                    financialForm.actualcost ===
-                    ''
-                      ? null
-                      : Number(
-                          financialForm.actualcost
-                        ),
-
-                  billingamount:
-                    financialForm.billingamount ===
-                    ''
-                      ? null
-                      : Number(
-                          financialForm.billingamount
-                        ),
-
-                  currcode:
-                    financialForm.currcode
-                })
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (
-          !response.ok
-        ) {
-          throw new Error(
-            result.error ||
-              'Failed to save Project Financial Information.'
-          );
-        }
-
-        const projectkey =
-          financialForm.projectkey;
-
-        const refreshed =
-          await loadPageData();
-
-        const refreshedProject =
-          projects.find(
-            (project) =>
-              `${project.projectcode}::${project.versionid}` ===
-              projectkey
-          );
-
-        const refreshedRecord =
-          refreshed.financialRecords.find(
-            (record) =>
-              record.projectcode ===
-                refreshedProject
-                  ?.projectcode &&
-              record.versionid ===
-                refreshedProject
-                  ?.versionid
-          );
-
-        const nextForm = {
-          projectkey,
-
-          budgetamount:
-            refreshedRecord
-              ?.budgetamount ??
-            financialForm.budgetamount,
-
-          actualcost:
-            refreshedRecord
-              ?.actualcost ??
-            financialForm.actualcost,
-
-          billingamount:
-            refreshedRecord
-              ?.billingamount ??
-            financialForm.billingamount,
-
-          currcode:
-            refreshedRecord
-              ?.currcode ||
-            financialForm.currcode
-        };
-
-        setFinancialForm(
-          nextForm
-        );
-
-        setOriginalFinancialForm(
-          nextForm
-        );
-
-        setFinancialRecordExists(
-          true
-        );
-
-        showAlert(
-          'success',
-          financialRecordExists
-            ? 'Financial Information Updated'
-            : 'Financial Information Saved',
-          `Project ${selectedFinancialProject.projectcode} Version ${selectedFinancialProject.versionid} financial information was saved successfully.`
-        );
-
-      } catch (error) {
-        showAlert(
-          'error',
-          'Financial Save Failed',
-          error.message ||
-            'Failed to save Project Financial Information.'
-        );
-
-      } finally {
-        setFinancialProcessing(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     FINANCIAL CLEAR
-  ========================================================= */
-
-  const clearFinancialForm =
-    () => {
-      setFinancialForm({
-        ...initialFinancialForm
-      });
-
-      setOriginalFinancialForm({
-        ...initialFinancialForm
-      });
-
-      setFinancialRecordExists(
-        false
-      );
-
-      setConfirmation({
-        open: false,
-        type: ''
-      });
-    };
-
-  const handleFinancialClear =
-    () => {
-      if (
-        financialHasChanges
-      ) {
-        setConfirmation({
-          open: true,
-          type:
-            'financial-clear'
-        });
-
-        return;
-      }
-
-      clearFinancialForm();
-    };
-
-  /* =========================================================
-     FINANCIAL DELETE
-  ========================================================= */
-
-  const requestFinancialDelete =
-    () => {
-      if (
-        !financialRecordExists ||
-        !selectedFinancialProject
-      ) {
-        return;
-      }
-
-      setConfirmation({
-        open: true,
-        type:
-          'financial-delete'
-      });
-    };
-
-  const deleteFinancialRecord =
-    async () => {
-      if (
-        !selectedFinancialProject
-      ) {
-        return;
-      }
-
-      const {
-        projectcode,
-        versionid
-      } =
-        selectedFinancialProject;
-
-      setConfirmation({
-        open: false,
-        type: ''
-      });
-
-      setFinancialProcessing(
-        true
-      );
-
-      try {
-        const response =
-          await authenticatedFetch(
-            `/api/project-fi/${encodeURIComponent(
-              projectcode
-            )}/${encodeURIComponent(
-              versionid
-            )}`,
-            {
-              method:
-                'DELETE'
-            }
-          );
-
-        const result =
-          await response.json();
-
-        if (
-          !response.ok
-        ) {
-          throw new Error(
-            result.error ||
-              'Failed to delete Project Financial Information.'
-          );
-        }
-
-        await loadPageData();
-
-        clearFinancialForm();
-
-        showAlert(
-          'success',
-          'Financial Information Deleted',
-          `Project ${projectcode} Version ${versionid} financial information was deleted successfully.`
-        );
-
-      } catch (error) {
-        showAlert(
-          'error',
-          'Financial Delete Failed',
-          error.message ||
-            'Failed to delete Project Financial Information.'
-        );
-
-      } finally {
-        setFinancialProcessing(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
      CONFIRM ACTION
   ========================================================= */
 
@@ -1458,30 +971,16 @@ function ResourceMasterPage() {
           type: ''
         });
 
-        if (resourceId) {
+        if (
+          resourceId
+        ) {
           loadResourceIntoForm(
             resourceId
           );
+
         } else {
           resetResourceToView();
         }
-
-        return;
-      }
-
-      if (
-        confirmation.type ===
-        'financial-delete'
-      ) {
-        deleteFinancialRecord();
-        return;
-      }
-
-      if (
-        confirmation.type ===
-        'financial-clear'
-      ) {
-        clearFinancialForm();
       }
     };
 
@@ -1516,6 +1015,7 @@ function ResourceMasterPage() {
 
     confirmationIsDelete =
       true;
+
   } else if (
     confirmation.type ===
     'resource-new'
@@ -1542,37 +1042,6 @@ function ResourceMasterPage() {
 
     confirmationButton =
       'Discard & Switch';
-
-  } else if (
-    confirmation.type ===
-    'financial-delete'
-  ) {
-    confirmationTitle =
-      'Delete Financial Information?';
-
-    confirmationMessage =
-      selectedFinancialProject
-        ? `Financial information for Project ${selectedFinancialProject.projectcode} Version ${selectedFinancialProject.versionid} will be permanently deleted.`
-        : 'The selected Financial Information will be deleted.';
-
-    confirmationButton =
-      'Delete Financial Information';
-
-    confirmationIsDelete =
-      true;
-
-  } else if (
-    confirmation.type ===
-    'financial-clear'
-  ) {
-    confirmationTitle =
-      'Clear Financial Changes?';
-
-    confirmationMessage =
-      'You have unsaved Project Financial changes. Clearing the form will discard them.';
-
-    confirmationButton =
-      'Discard & Clear';
   }
 
   /* =========================================================
@@ -1612,11 +1081,12 @@ function ResourceMasterPage() {
 
   return (
     <div className="page-wrap">
-      {/* =====================================================
-          RESOURCE MASTER
-      ===================================================== */}
-
       <div className="card">
+
+        {/* =====================================================
+            RESOURCE MASTER
+        ===================================================== */}
+
         <div className="page-heading">
           <div>
             <h1>
@@ -1679,7 +1149,9 @@ function ResourceMasterPage() {
                   </option>
 
                   {resources.map(
-                    (resource) => (
+                    (
+                      resource
+                    ) => (
                       <option
                         key={
                           resource.resourceid
@@ -1773,7 +1245,9 @@ function ResourceMasterPage() {
                 </option>
 
                 {resourceTypes.map(
-                  (type) => (
+                  (
+                    type
+                  ) => (
                     <option
                       key={
                         type.resourcetype
@@ -1816,7 +1290,9 @@ function ResourceMasterPage() {
                 </option>
 
                 {projectRoles.map(
-                  (role) => (
+                  (
+                    role
+                  ) => (
                     <option
                       key={
                         role.projectroleid
@@ -1907,7 +1383,9 @@ function ResourceMasterPage() {
                 </option>
 
                 {currencies.map(
-                  (currency) => (
+                  (
+                    currency
+                  ) => (
                     <option
                       key={
                         currency.currcode
@@ -1950,6 +1428,10 @@ function ResourceMasterPage() {
               />
             </label>
           </div>
+
+          {/* =====================================================
+              RESOURCE ACTIONS
+          ===================================================== */}
 
           <div
             style={{
@@ -2009,347 +1491,6 @@ function ResourceMasterPage() {
               }
             >
               ➕ New Resource
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* =====================================================
-          PROJECT FINANCIALS
-      ===================================================== */}
-
-      <div
-        className="card"
-        style={{
-          marginTop:
-            '24px'
-        }}
-      >
-        <div className="page-heading">
-          <div>
-            <h1>
-              💰 Project Financials
-            </h1>
-
-            <p className="page-description">
-              Select a Project and Version to create,
-              view, update or delete Project Financial
-              Information.
-            </p>
-          </div>
-        </div>
-
-        <form
-          onSubmit={
-            handleFinancialSubmit
-          }
-        >
-          <div className="form-grid">
-
-            {/* PROJECT */}
-
-            <label>
-              Project / Version *
-
-              <select
-                name="projectkey"
-                value={
-                  financialForm.projectkey
-                }
-                onChange={
-                  handleFinancialProjectChange
-                }
-                disabled={
-                  loading ||
-                  financialProcessing
-                }
-              >
-                <option value="">
-                  {loading
-                    ? 'Loading Projects...'
-                    : 'Select Project / Version'}
-                </option>
-
-                {projects.map(
-                  (project) => (
-                    <option
-                      key={
-                        `${project.projectcode}-${project.versionid}`
-                      }
-                      value={
-                        `${project.projectcode}::${project.versionid}`
-                      }
-                    >
-                      {project.projectcode}
-                      {' - '}
-                      {project.projectname}
-                      {' - V'}
-                      {project.versionid}
-                    </option>
-                  )
-                )}
-              </select>
-            </label>
-
-            {/* PROJECT CODE */}
-
-            <label>
-              Project Code
-
-              <input
-                value={
-                  selectedFinancialProject
-                    ?.projectcode ||
-                  ''
-                }
-                readOnly
-                placeholder="Auto"
-              />
-            </label>
-
-            {/* VERSION ID */}
-
-            <label>
-              Version ID
-
-              <input
-                value={
-                  selectedFinancialProject
-                    ?.versionid ||
-                  ''
-                }
-                readOnly
-                placeholder="Auto"
-              />
-            </label>
-
-            {/* BUDGET */}
-
-            <label>
-              Budget Amount
-
-              <input
-                type="number"
-                name="budgetamount"
-                min="0"
-                step="0.01"
-                value={
-                  financialForm.budgetamount
-                }
-                onChange={
-                  handleFinancialChange
-                }
-                placeholder="0.00"
-                disabled={
-                  financialProcessing ||
-                  !selectedFinancialProject
-                }
-              />
-            </label>
-
-            {/* ACTUAL COST */}
-
-            <label>
-              Actual Cost
-
-              <input
-                type="number"
-                name="actualcost"
-                min="0"
-                step="0.01"
-                value={
-                  financialForm.actualcost
-                }
-                onChange={
-                  handleFinancialChange
-                }
-                placeholder="0.00"
-                disabled={
-                  financialProcessing ||
-                  !selectedFinancialProject
-                }
-              />
-            </label>
-
-            {/* BILLING */}
-
-            <label>
-              Billing Amount
-
-              <input
-                type="number"
-                name="billingamount"
-                min="0"
-                step="0.01"
-                value={
-                  financialForm.billingamount
-                }
-                onChange={
-                  handleFinancialChange
-                }
-                placeholder="0.00"
-                disabled={
-                  financialProcessing ||
-                  !selectedFinancialProject
-                }
-              />
-            </label>
-
-            {/* CURRENCY */}
-
-            <label>
-              Currency *
-
-              <select
-                name="currcode"
-                value={
-                  financialForm.currcode
-                }
-                onChange={
-                  handleFinancialChange
-                }
-                disabled={
-                  loading ||
-                  financialProcessing ||
-                  !selectedFinancialProject
-                }
-              >
-                <option value="">
-                  Select Currency
-                </option>
-
-                {currencies.map(
-                  (currency) => (
-                    <option
-                      key={
-                        currency.currcode
-                      }
-                      value={
-                        currency.currcode
-                      }
-                    >
-                      {currency.currcode}
-                      {' - '}
-                      {currency.description}
-                    </option>
-                  )
-                )}
-              </select>
-            </label>
-          </div>
-
-          {selectedFinancialProject && (
-            <div
-              className="project-summary"
-              style={{
-                marginTop:
-                  '20px'
-              }}
-            >
-              <div className="summary-item">
-                <span>
-                  Project Name
-                </span>
-
-                <strong>
-                  {selectedFinancialProject.projectname ||
-                    '-'}
-                </strong>
-              </div>
-
-              <div className="summary-item">
-                <span>
-                  Location
-                </span>
-
-                <strong>
-                  {selectedFinancialProject.location ||
-                    '-'}
-                </strong>
-              </div>
-
-              <div className="summary-item">
-                <span>
-                  Region
-                </span>
-
-                <strong>
-                  {selectedFinancialProject.region ||
-                    '-'}
-                </strong>
-              </div>
-
-              <div className="summary-item">
-                <span>
-                  Financial Record
-                </span>
-
-                <strong>
-                  {financialRecordExists
-                    ? 'Existing'
-                    : 'New'}
-                </strong>
-              </div>
-            </div>
-          )}
-
-          <div
-            style={{
-              display:
-                'flex',
-              gap:
-                '12px',
-              flexWrap:
-                'wrap',
-              marginTop:
-                '20px'
-            }}
-          >
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                financialProcessing ||
-                !selectedFinancialProject ||
-                (
-                  financialRecordExists &&
-                  !financialHasChanges
-                )
-              }
-            >
-              {financialProcessing
-                ? '⏳ Processing...'
-                : financialRecordExists
-                  ? '💾 Update Financial Information'
-                  : '💾 Save Financial Information'}
-            </button>
-
-            {financialRecordExists && (
-              <button
-                type="button"
-                className="delete-button"
-                onClick={
-                  requestFinancialDelete
-                }
-                disabled={
-                  financialProcessing
-                }
-              >
-                🗑 Delete Financial Information
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={
-                handleFinancialClear
-              }
-              disabled={
-                financialProcessing
-              }
-            >
-              Clear Selection
             </button>
           </div>
         </form>
@@ -2634,6 +1775,7 @@ function ResourceMasterPage() {
                 onClick={
                   closeAlert
                 }
+                autoFocus
               >
                 OK
               </button>
